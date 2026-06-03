@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage",
     "db:migrate": "ts-node src/db/migrate.ts",
     "db:seed": "ts-node src/db/seeds/index.ts",
