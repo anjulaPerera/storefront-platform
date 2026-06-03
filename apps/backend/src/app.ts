@@ -1,10 +1,10 @@
-import express from "express";
+import express, { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { errorMiddleware } from "@/middleware/error.middleware.js";
 
-export function createApp() {
+export function createApp(): Express {
   const app = express();
 
   // ─── Security & Parsing ───────────────────────────────────────────
