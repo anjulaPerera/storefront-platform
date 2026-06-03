@@ -1,0 +1,22 @@
+{
+  "name": "storefront-platform",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "backend:dev": "pnpm --filter backend dev",
+    "frontend:dev": "pnpm --filter frontend dev",
+    "backend:build": "pnpm --filter backend build",
+    "frontend:build": "pnpm --filter frontend build",
+    "backend:test": "pnpm --filter backend test",
+    "frontend:test": "pnpm --filter frontend test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
