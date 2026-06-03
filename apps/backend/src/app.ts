@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import { errorMiddleware } from "@/middleware/error.middleware";
+import { errorMiddleware } from "@/middleware/error.middleware.js";
 
 export function createApp() {
   const app = express();
