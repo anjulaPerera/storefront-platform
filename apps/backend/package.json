@@ -13,11 +13,12 @@
     "db:migrate": "ts-node -r tsconfig-paths/register src/db/migrate.ts",
     "db:seed": "ts-node -r tsconfig-paths/register src/db/seeds/index.ts",
     "db:seed:admin": "ts-node -r tsconfig-paths/register src/db/seeds/seed-admin.ts",
-    "db:reset": "ts-node -r tsconfig-paths/register src/db/reset.ts"
+    "db:reset": "ts-node -r tsconfig-paths/register src/db/reset.ts",
+    "db:seed:products": "ts-node -r tsconfig-paths/register src/db/seeds/seed-products.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.21.1",
@@ -31,7 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^3.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
