@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Router as ExpressRouter } from "express";
 import rateLimit from "express-rate-limit";
 import { validate } from "@/middleware/validate.middleware";
 import { authMiddleware } from "@/middleware/auth.middleware";
@@ -10,7 +11,7 @@ import {
   resetPasswordSchema,
 } from "@/modules/auth/auth.schema";
 
-export const authRouter = Router();
+export const authRouter: ExpressRouter = Router();
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
