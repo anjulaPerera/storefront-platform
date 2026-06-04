@@ -10,8 +10,10 @@ const config = {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   transform: {
-    // Fixes the ts-jest deprecation warning by extracting tsconfig targeting options here
-    "^.+\\.tsx?$": ["ts-jest", { tsconfig: "./tsconfig.jest.json" }],
+    "^.+\\.tsx?$": ["ts-jest", { 
+      tsconfig: "./tsconfig.jest.json",
+      diagnostics: { ignoreCodes: [151002]} 
+    }],
   },
   coverageDirectory: "coverage",
   collectCoverageFrom: [
