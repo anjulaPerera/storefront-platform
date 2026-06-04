@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Router as ExpressRouter } from "express";
 import { authMiddleware } from "@/middleware/auth.middleware";
 import { requireRole } from "@/middleware/role.middleware";
 import { validate } from "@/middleware/validate.middleware";
@@ -8,7 +9,7 @@ import {
 } from "@/modules/banners/banners.schema";
 import * as c from "@/modules/banners/banners.controller";
 
-export const bannersRouter = Router();
+export const bannersRouter: ExpressRouter = Router();
 
 bannersRouter.get("/", c.listActive);
 bannersRouter.get("/all", authMiddleware, requireRole("admin"), c.listAll);
