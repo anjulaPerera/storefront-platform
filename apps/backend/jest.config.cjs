@@ -2,8 +2,13 @@
 const config = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/src"], // Remove the tests directory reference
+  roots: ["<rootDir>/src", "<rootDir>/tests"],
   testMatch: ["**/*.test.ts"],
+  globals: {
+    "ts-jest": {
+      tsconfig: "./tsconfig.jest.json",
+    },
+  },
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
@@ -16,4 +21,4 @@ const config = {
   ],
 };
 
-export default config;
+module.exports = config;

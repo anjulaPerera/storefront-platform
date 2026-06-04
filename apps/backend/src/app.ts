@@ -2,12 +2,11 @@ import express, { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import { errorMiddleware } from "@/middleware/error.middleware.js";
+import { errorMiddleware } from "@/middleware/error.middleware";
 
 export function createApp(): Express {
   const app = express();
 
-  // ─── Security & Parsing ───────────────────────────────────────────
   app.use(helmet());
   app.use(
     cors({
@@ -22,7 +21,6 @@ export function createApp(): Express {
     app.use(morgan("dev"));
   }
 
-  // ─── Health Check ─────────────────────────────────────────────────
   app.get("/api/v1/health", (_req, res) => {
     res.json({
       success: true,
@@ -31,10 +29,8 @@ export function createApp(): Express {
     });
   });
 
-  // ─── Routes (to be added in Phase 2+) ────────────────────────────
   // app.use('/api/v1/auth', authRouter);
 
-  // ─── Error Handler (must be last) ────────────────────────────────
   app.use(errorMiddleware);
 
   return app;

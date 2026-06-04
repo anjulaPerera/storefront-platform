@@ -16,9 +16,11 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_" },
       ],
-      "no-console": "off", // Keep off for server logs
+      "@typescript-eslint/no-explicit-any": "warn",
+      "no-console": "off",
     },
-    // Ignore build and test coverage directories natively
+  },
+  {
     ignores: ["dist/", "coverage/", "jest.config.ts"],
   },
 );
