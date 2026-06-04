@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Router as ExpressRouter } from "express";
 import { authMiddleware } from "@/middleware/auth.middleware";
 import { requireRole } from "@/middleware/role.middleware";
 import { validate } from "@/middleware/validate.middleware";
@@ -10,7 +11,8 @@ import {
 } from "@/modules/products/products.schema";
 import * as c from "@/modules/products/products.controller";
 
-export const productsRouter = Router();
+export const productsRouter: ExpressRouter = Router();
+
 
 // Public
 productsRouter.get("/", validate(listProductsSchema), c.list);
