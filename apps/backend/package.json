@@ -8,7 +8,7 @@
     "start": "node dist/server.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "jest --passWithNoTests",
+    "test": "jest ",
     "test:coverage": "jest --coverage",
     "db:migrate": "ts-node -r tsconfig-paths/register src/db/migrate.ts",
     "db:seed": "ts-node -r tsconfig-paths/register src/db/seeds/index.ts",
@@ -19,6 +19,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.21.1",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@eslint/js": "^9.15.0",
     "@types/bcryptjs": "^3.0.0",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
