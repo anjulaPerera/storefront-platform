@@ -17,6 +17,12 @@ importers:
       '@google/generative-ai':
         specifier: ^0.21.0
         version: 0.21.0
+      '@storefront/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@storefront/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3

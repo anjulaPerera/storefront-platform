@@ -1,14 +1,12 @@
 {
-  "ts-node": {
-    "esm": false
-  },
+  "ts-node": { "esm": false },
   "compilerOptions": {
     "target": "ES2022",
     "module": "Node16",
     "moduleResolution": "node16",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../../",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -19,7 +17,9 @@
     "sourceMap": true,
     "isolatedModules": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@storefront/config": ["../../packages/config/src/index"],
+      "@storefront/types": ["../../packages/types/src/index"]
     }
   },
   "include": ["src/**/*"],

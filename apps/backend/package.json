@@ -8,16 +8,18 @@
     "start": "node dist/server.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "jest ",
+    "test": "jest",
     "test:coverage": "jest --coverage",
     "db:migrate": "ts-node -r tsconfig-paths/register src/db/migrate.ts",
     "db:seed": "ts-node -r tsconfig-paths/register src/db/seeds/index.ts",
     "db:seed:admin": "ts-node -r tsconfig-paths/register src/db/seeds/seed-admin.ts",
-    "db:reset": "ts-node -r tsconfig-paths/register src/db/reset.ts",
-    "db:seed:products": "ts-node -r tsconfig-paths/register src/db/seeds/seed-products.ts"
+    "db:seed:products": "ts-node -r tsconfig-paths/register src/db/seeds/seed-products.ts",
+    "db:reset": "ts-node -r tsconfig-paths/register src/db/reset.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "@storefront/config": "workspace:*",
+    "@storefront/types": "workspace:*",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
