@@ -1,5 +1,11 @@
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+// ✅ Check if code is running in the browser window context
+const isBrowser = typeof window !== "undefined";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL
+  ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1`
+  : isBrowser
+    ? "/api/backend/api/v1" // Browser client side calls route through our proxy
+    : "http://localhost:4000/api/v1";
 
 export class ApiError extends Error {
   constructor(
