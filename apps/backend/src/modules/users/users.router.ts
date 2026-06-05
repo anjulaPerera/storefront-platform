@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Router as ExpressRouter } from "express";
 import { authMiddleware } from "@/middleware/auth.middleware";
 import { requireRole } from "@/middleware/role.middleware";
 import { validate } from "@/middleware/validate.middleware";
@@ -8,7 +9,8 @@ import {
 } from "@/modules/users/users.schema";
 import * as c from "@/modules/users/users.controller";
 
-export const usersRouter = Router();
+export const usersRouter: ExpressRouter = Router();
+
 
 usersRouter.use(authMiddleware);
 

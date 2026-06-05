@@ -1,7 +1,9 @@
 import { Router } from "express";
+import type { Router as ExpressRouter } from "express";
 import { tenantConfig } from "@storefront/config";
 
-export const configRouter = Router();
+export const configRouter: ExpressRouter = Router();
+
 
 // Returns only what the frontend needs — never secrets
 configRouter.get("/public", (_req, res) => {
