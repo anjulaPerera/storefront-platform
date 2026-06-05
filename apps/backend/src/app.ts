@@ -14,6 +14,8 @@ import { enquiriesRouter } from "@/modules/enquiries/enquiries.router";
 import { wishlistRouter } from "@/modules/wishlist/wishlist.router";
 import { usersRouter } from "@/modules/users/users.router";
 import { configRouter } from "@/modules/config/config.router";
+import { aiRouter } from "@/modules/ai/ai.router";
+
 
 export function createApp(): Express {
   const app = express();
@@ -49,6 +51,7 @@ export function createApp(): Express {
   app.use("/api/v1/wishlist", wishlistRouter);
   app.use("/api/v1/users", usersRouter);
   app.use("/api/v1/config", configRouter);
+  app.use("/api/v1/ai", aiRouter);
 
   app.use(errorMiddleware);
   return app;
