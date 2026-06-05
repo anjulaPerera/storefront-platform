@@ -9,6 +9,11 @@ import { categoriesRouter } from "@/modules/categories/categories.router";
 import { productsRouter } from "@/modules/products/products.router";
 import { discountsRouter } from "@/modules/discounts/discounts.router";
 import { bannersRouter } from "@/modules/banners/banners.router";
+import { reviewsRouter } from "@/modules/reviews/reviews.router";
+import { enquiriesRouter } from "@/modules/enquiries/enquiries.router";
+import { wishlistRouter } from "@/modules/wishlist/wishlist.router";
+import { usersRouter } from "@/modules/users/users.router";
+import { configRouter } from "@/modules/config/config.router";
 
 export function createApp(): Express {
   const app = express();
@@ -24,9 +29,7 @@ export function createApp(): Express {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
-  if (process.env.NODE_ENV !== "test") {
-    app.use(morgan("dev"));
-  }
+  if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
 
   app.get("/api/v1/health", (_req, res) => {
     res.json({
@@ -41,6 +44,11 @@ export function createApp(): Express {
   app.use("/api/v1/products", productsRouter);
   app.use("/api/v1/discounts", discountsRouter);
   app.use("/api/v1/banners", bannersRouter);
+  app.use("/api/v1/reviews", reviewsRouter);
+  app.use("/api/v1/enquiries", enquiriesRouter);
+  app.use("/api/v1/wishlist", wishlistRouter);
+  app.use("/api/v1/users", usersRouter);
+  app.use("/api/v1/config", configRouter);
 
   app.use(errorMiddleware);
   return app;
