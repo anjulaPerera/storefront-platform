@@ -8,19 +8,19 @@ import { apiFetch } from "@/lib/api";
 export function ProfileForm() {
   const router = useRouter();
   const { user, accessToken, setAuth } = useAuthStore();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+
+  // ✅ Initialize state directly from store data if present to prevent cascading re-renders
+  const [firstName, setFirstName] = useState(user?.firstName ?? "");
+  const [lastName, setLastName] = useState(user?.lastName ?? "");
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
+  // ✅ Keep useEffect dedicated strictly to navigation guard logic
   useEffect(() => {
     if (!user) {
       router.push("/login");
-      return;
     }
-    setFirstName(user.firstName);
-    setLastName(user.lastName);
   }, [user, router]);
 
   async function handleSubmit(e: React.FormEvent) {
