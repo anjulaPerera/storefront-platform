@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS variables for dynamic/JS access — values come from SSOT at build time */
+:root {
+    --primary: #1D4ED8;
+    --primary-dark: #1E3A8A;
+    --secondary: #0EA5E9;
+    --accent: #F59E0B;
+    --background: #F8FAFC;
+    --surface: #FFFFFF;
+    --foreground: #1E293B;
+    --muted: #64748B;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: var(--background);
+    color: var(--foreground);
+}
+
+/* Focus ring utility for accessibility */
+.focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+}
