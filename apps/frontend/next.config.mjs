@@ -8,18 +8,14 @@ const nextConfig = {
       { protocol: "https", hostname: "placehold.co" },
     ],
   },
-  // Forward API calls to backend during dev (optional, can use NEXT_PUBLIC_API_URL directly)
-  // Forward API calls to backend during dev
-  async rewrites() {
-    // ✅ Extract variable with a fallback to prevent "undefined" string compilation errors
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
+  async rewrites() {
     return process.env.NODE_ENV === "development"
       ? [
           {
             source: "/api/backend/:path*",
-            destination: `${backendUrl}/:path*`,
+            // ✅ Fallback to explicit localhost string if the env variable is undefined
+            destination: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/:path*`,
           },
         ]
       : [];
