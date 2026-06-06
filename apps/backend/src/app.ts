@@ -15,6 +15,8 @@ import { wishlistRouter } from "@/modules/wishlist/wishlist.router";
 import { usersRouter } from "@/modules/users/users.router";
 import { configRouter } from "@/modules/config/config.router";
 import { aiRouter } from "@/modules/ai/ai.router";
+import { adminRouter } from "@/modules/admin/admin.router";
+
 
 
 export function createApp(): Express {
@@ -40,7 +42,7 @@ export function createApp(): Express {
       timestamp: new Date().toISOString(),
     });
   });
-
+app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/categories", categoriesRouter);
   app.use("/api/v1/products", productsRouter);
