@@ -1,8 +1,7 @@
 # ─── Stage 1: Install all dependencies ────────────────────────────────────────
 FROM node:24-alpine AS deps
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11
 WORKDIR /app
-RUN echo 'approve-builds[]=unrs-resolver' > .npmrc
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/backend/package.json    ./apps/backend/
 COPY packages/config/package.json ./packages/config/
@@ -11,23 +10,19 @@ RUN pnpm install --frozen-lockfile
 
 # ─── Stage 2: Build ───────────────────────────────────────────────────────────
 FROM node:24-alpine AS builder
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11
 WORKDIR /app
-RUN echo 'approve-builds[]=unrs-resolver' > .npmrc
 COPY --from=deps /app/node_modules              ./node_modules
 COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
 COPY . .
-# Overwrite any .npmrc from repo to guarantee approval is set
-RUN echo 'approve-builds[]=unrs-resolver' > .npmrc
 WORKDIR /app/apps/backend
 RUN pnpm build
 
 # ─── Stage 3: Production runtime ──────────────────────────────────────────────
 FROM node:24-alpine AS runner
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11
 WORKDIR /app
 ENV NODE_ENV=production
-RUN echo 'approve-builds[]=unrs-resolver' > .npmrc
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/backend/package.json    ./apps/backend/
 COPY packages/config/package.json ./packages/config/
