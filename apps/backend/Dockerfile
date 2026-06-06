@@ -18,9 +18,6 @@ COPY . .
 WORKDIR /app/apps/backend
 RUN pnpm build
 
-# Temporarily add this to your Dockerfile after RUN pnpm build to see what's there:
-RUN find /app/apps/backend -name "*.js" | head -30
-
 # ─── Stage 3: Production runtime ──────────────────────────────────────────────
 FROM node:24-alpine AS runner
 RUN npm install -g pnpm@11
@@ -32,12 +29,10 @@ COPY packages/config/package.json ./packages/config/
 COPY packages/types/package.json  ./packages/types/
 RUN pnpm install --prod --frozen-lockfile
 
-COPY --from=builder /app/apps/backend/dist   ./apps/backend/dist
-COPY --from=builder /app/packages/config/src ./packages/config/src
-COPY --from=builder /app/packages/types/src  ./packages/types/src
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD wget -qO- http://localhost:4000/api/v1/health || exit 1
 
-CMD ["node", "apps/backend/dist/server.js"]
+CMD ["node", "apps/backend/dist/apps/backend/src/server.js"]
