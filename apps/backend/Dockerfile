@@ -2,8 +2,7 @@
 FROM node:24-alpine AS deps
 RUN npm install -g pnpm
 WORKDIR /app
-# Copy workspace manifests first for layer caching
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY apps/backend/package.json     ./apps/backend/
 COPY packages/config/package.json  ./packages/config/
 COPY packages/types/package.json   ./packages/types/
@@ -25,19 +24,19 @@ RUN npm install -g pnpm
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy workspace structural configurations for pnpm isolation
+# Copy workspace lockfile and workspace manifests for structural installation
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY apps/backend/package.json ./apps/backend/
 
-# Install isolated production dependencies
+# Install pruned production dependencies 
 RUN pnpm install --prod --frozen-lockfile
 
-# Copy compiled distribution output from the builder stage
+# Copy compiled distribution output from builder stage
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD wget -qO- http://localhost:4000/api/v1/health || exit 1
 
-# Execute relative to the app base directory layer
+# Execute from the backend context where dist sits
 CMD ["node", "apps/backend/dist/server.js"]
