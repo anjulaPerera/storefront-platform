@@ -6,30 +6,40 @@ on:
     paths:
       - 'apps/backend/**'
       - 'packages/**'
+      - 'pnpm-workspace.yaml'
 
 jobs:
   ci:
-    name: Lint, Typecheck & Test
+    name: Lint · Typecheck · Test
     runs-on: ubuntu-latest
 
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: postgres
+          POSTGRES_USER:     postgres
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: storefront_test
-        ports:
-          - 5432:5432
+          POSTGRES_DB:       storefront_test
+        ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      DATABASE_URL:         postgresql://postgres:password@localhost:5432/storefront_test
+      JWT_ACCESS_SECRET:    ci_access_secret_minimum_32_characters
+      JWT_REFRESH_SECRET:   ci_refresh_secret_minimum_32_characters
+      JWT_ACCESS_EXPIRES:   15m
+      JWT_REFRESH_EXPIRES:  7d
+      NODE_ENV:             test
+      CORS_ORIGIN:          http://localhost:3000
+      RESEND_API_KEY:       ""
+      GEMINI_API_KEY:       test_key
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node 24
         uses: actions/setup-node@v4
@@ -41,6 +51,17 @@ jobs:
         with:
           version: 9
 
+      - name: Get pnpm store
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -50,12 +71,15 @@ jobs:
       - name: Typecheck
         run: pnpm --filter backend typecheck
 
+      - name: Run migrations on test DB
+        run: pnpm --filter backend db:migrate
+
       - name: Run tests
-        run: pnpm --filter backend test
-        env:
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/storefront_test
-          JWT_ACCESS_SECRET: test_access_secret_32_chars_minimum
-          JWT_REFRESH_SECRET: test_refresh_secret_32_chars_minimum
-          JWT_ACCESS_EXPIRES: 15m
-          JWT_REFRESH_EXPIRES: 7d
-          NODE_ENV: test
+        run: pnpm --filter backend test:coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage

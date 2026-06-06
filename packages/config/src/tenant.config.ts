@@ -164,7 +164,7 @@ export const tenantConfig: TenantConfig = {
   identity: {
     shopName: "RangaPhones",
     tagline: "Your trusted mobile partner",
-    logoPath: "/logo.svg",
+    logoPath: "/man.jpg",
     faviconPath: "/favicon.ico",
     phone: "+94 77 123 4567",
     email: "hello@rangaphones.lk",

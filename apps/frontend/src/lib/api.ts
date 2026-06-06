@@ -1,5 +1,11 @@
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+// ✅ Check if code is running in the browser window context
+const isBrowser = typeof window !== "undefined";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL
+  ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1`
+  : isBrowser
+    ? "/api/backend/api/v1" // Browser client side calls route through our proxy
+    : "http://localhost:4000/api/v1";
 
 export class ApiError extends Error {
   constructor(
@@ -209,5 +215,179 @@ export const api = {
   // Config
   config: {
     public: () => apiFetch("/config/public", { next: { revalidate: 3600 } }),
+  },
+  // Admin
+  admin: {
+    stats: (token: string) =>
+      apiFetch("/admin/stats", { token, cache: "no-store" }),
+
+    // Products
+    createProduct: (data: Record<string, unknown>, token: string) =>
+      apiFetch("/products", {
+        method: "POST",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
+    updateProduct: (id: string, data: Record<string, unknown>, token: string) =>
+      apiFetch(`/products/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
+    deleteProduct: (id: string, token: string) =>
+      apiFetch(`/products/${id}`, {
+        method: "DELETE",
+        token,
+        cache: "no-store",
+      }),
+    toggleProduct: (id: string, token: string) =>
+      apiFetch(`/products/${id}/toggle`, {
+        method: "PATCH",
+        token,
+        cache: "no-store",
+      }),
+    listAllProducts: (
+      token: string,
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
+      apiFetch("/products", {
+        token,
+        params: { ...params, limit: 50 },
+        cache: "no-store",
+      }),
+
+    // Categories
+    createCategory: (data: Record<string, unknown>, token: string) =>
+      apiFetch("/categories", {
+        method: "POST",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
+    updateCategory: (
+      id: string,
+      data: Record<string, unknown>,
+      token: string,
+    ) =>
+      apiFetch(`/categories/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
+    deleteCategory: (id: string, token: string) =>
+      apiFetch(`/categories/${id}`, {
+        method: "DELETE",
+        token,
+        cache: "no-store",
+      }),
+    listAllCategories: (token: string) =>
+      apiFetch("/categories?all=true", { token, cache: "no-store" }),
+
+    // Banners
+    listAllBanners: (token: string) =>
+      apiFetch("/banners/all", { token, cache: "no-store" }),
+    createBanner: (data: Record<string, unknown>, token: string) =>
+      apiFetch("/banners", {
+        method: "POST",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
+    updateBanner: (id: string, data: Record<string, unknown>, token: string) =>
+      apiFetch(`/banners/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
+    deleteBanner: (id: string, token: string) =>
+      apiFetch(`/banners/${id}`, {
+        method: "DELETE",
+        token,
+        cache: "no-store",
+      }),
+
+    // Discounts
+    listAllDiscounts: (token: string) =>
+      apiFetch("/discounts", { token, cache: "no-store" }),
+    createDiscount: (data: Record<string, unknown>, token: string) =>
+      apiFetch("/discounts", {
+        method: "POST",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
+    updateDiscount: (
+      id: string,
+      data: Record<string, unknown>,
+      token: string,
+    ) =>
+      apiFetch(`/discounts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
+    deleteDiscount: (id: string, token: string) =>
+      apiFetch(`/discounts/${id}`, {
+        method: "DELETE",
+        token,
+        cache: "no-store",
+      }),
+
+    // Reviews
+    listPendingReviews: (token: string) =>
+      apiFetch("/reviews/pending", { token, cache: "no-store" }),
+    approveReview: (id: string, token: string) =>
+      apiFetch(`/reviews/${id}/approve`, {
+        method: "PATCH",
+        token,
+        cache: "no-store",
+      }),
+    deleteReview: (id: string, token: string) =>
+      apiFetch(`/reviews/${id}`, {
+        method: "DELETE",
+        token,
+        cache: "no-store",
+      }),
+
+    // Enquiries
+    listEnquiries: (token: string, params?: Record<string, string>) =>
+      apiFetch("/enquiries", { token, params, cache: "no-store" }),
+    updateEnquiryStatus: (id: string, status: string, token: string) =>
+      apiFetch(`/enquiries/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+        token,
+        cache: "no-store",
+      }),
+    deleteEnquiry: (id: string, token: string) =>
+      apiFetch(`/enquiries/${id}`, {
+        method: "DELETE",
+        token,
+        cache: "no-store",
+      }),
+
+    // Users
+    listUsers: (token: string, params?: Record<string, string>) =>
+      apiFetch("/users", { token, params, cache: "no-store" }),
+    toggleUser: (id: string, token: string) =>
+      apiFetch(`/users/${id}/toggle`, {
+        method: "PATCH",
+        token,
+        cache: "no-store",
+      }),
+    changeUserRole: (id: string, role: string, token: string) =>
+      apiFetch(`/users/${id}/role`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+        token,
+        cache: "no-store",
+      }),
+    deleteUser: (id: string, token: string) =>
+      apiFetch(`/users/${id}`, { method: "DELETE", token, cache: "no-store" }),
   },
 };
