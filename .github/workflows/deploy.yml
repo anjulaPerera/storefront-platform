@@ -5,9 +5,9 @@ on:
     branches: [main]
 
 jobs:
-  # ─── 1. RUN CI VERIFICATION CHECKS FIRST ───────────────────────────────────
+  # ─── 1. INTEGRATED CI STAGING CHECKS ───────────────────────────────────────
   ci-validation:
-    name: Validate Build Staging (Lint · Typecheck · Test)
+    name: Validate Monorepo Build (Frontend & Backend)
     runs-on: ubuntu-latest
 
     services:
@@ -34,6 +34,9 @@ jobs:
       CORS_ORIGIN:          http://localhost:3000
       RESEND_API_KEY:       ""
       GEMINI_API_KEY:       test_key
+      NEXT_PUBLIC_API_URL:           http://localhost:4000/api/v1
+      NEXT_PUBLIC_SUPABASE_URL:      https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_key
 
     steps:
       - uses: actions/checkout@v4
@@ -59,25 +62,38 @@ jobs:
           key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: pnpm-${{ runner.os }}-
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: apps/frontend/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('apps/frontend/**') }}
+          restore-keys: nextjs-${{ runner.os }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
+      # Backend Checks
+      - name: Lint Backend
         run: pnpm --filter backend lint
-
-      - name: Typecheck
+      - name: Typecheck Backend
         run: pnpm --filter backend typecheck
-
       - name: Run migrations on test DB
         run: pnpm --filter backend db:migrate
-
-      - name: Run tests
+      - name: Run Backend Tests
         run: pnpm --filter backend test:coverage
+
+      # Frontend Checks
+      - name: Lint Frontend
+        run: pnpm --filter frontend lint
+      - name: Typecheck Frontend
+        run: pnpm --filter frontend typecheck
+      - name: Build Frontend Test Run
+        run: pnpm --filter frontend build
 
   # ─── 2. DEPLOY BACKEND TO RENDER ───────────────────────────────────────────
   deploy-backend:
     name: Deploy Backend → Render
-    needs: ci-validation # Only triggers if tests pass successfully
+    needs: ci-validation
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Render deploy hook
@@ -93,7 +109,7 @@ jobs:
   # ─── 3. DEPLOY FRONTEND TO VERCEL ──────────────────────────────────────────
   deploy-frontend:
     name: Deploy Frontend → Vercel
-    needs: ci-validation # Only triggers if tests pass successfully
+    needs: ci-validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
