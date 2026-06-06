@@ -61,7 +61,7 @@ export default function AdminCategoriesPage() {
     setLoading(false);
   }
 
-  /* eslint-disable react-hooks/set-state-in-effect */
+  
 
   useEffect(() => {
     load();

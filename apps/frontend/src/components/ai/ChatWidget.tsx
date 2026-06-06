@@ -35,29 +35,32 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const [sessionId, setSessionId] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
+  const greetingShown = useRef(false);
 
-  useEffect(() => {
-    setSessionId(getOrCreateSessionId());
-  }, []);
+const [sessionId] = useState<string>(() =>
+  typeof window === "undefined" ? "" : getOrCreateSessionId(),
+);
 
-  useEffect(() => {
-    if (open && messages.length === 0) {
-      // Show greeting on first open
-      setMessages([{ role: "assistant", content: ai.greetingMessage }]);
-    }
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [open]);
+useEffect(() => {
+  if (!open) return;
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing]);
+  // Show greeting only once
+  if (!greetingShown.current) {
+    greetingShown.current = true;
+    setMessages([{ role: "assistant", content: ai.greetingMessage }]);
+  }
+
+  // Focus input after animation
+  const timer = setTimeout(() => inputRef.current?.focus(), 150);
+  return () => clearTimeout(timer);
+}, [open, ai.greetingMessage]);
+
+useEffect(() => {
+  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages, typing]);
 
   async function sendMessage() {
     const text = input.trim();
@@ -108,11 +111,21 @@ export function ChatWidget() {
 
   if (!ai.enabled) return null;
 
+  function toggleChat() {
+    setOpen((prev) => {
+      const next = !prev;
+      if (next && !greetingShown.current) {
+        greetingShown.current = true;
+        setMessages([{ role: "assistant", content: ai.greetingMessage }]);
+      }
+      return next;
+    });
+  }
   return (
     <>
       {/* Floating button */}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleChat}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:bg-primary-dark transition-all hover:scale-105 flex items-center justify-center"
         aria-label={open ? "Close chat" : `Chat with ${ai.assistantName}`}
       >

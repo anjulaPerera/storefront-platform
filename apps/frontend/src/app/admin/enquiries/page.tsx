@@ -48,7 +48,7 @@ export default function AdminEnquiriesPage() {
     setLoading(false);
   }
 
-  /* eslint-disable react-hooks/set-state-in-effect */
+  
 
   useEffect(() => {
     load();

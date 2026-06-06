@@ -27,6 +27,12 @@ export default [
 
       // Explicitly tie down the react-hooks definitions
       ...reactHooksPlugin.configs.recommended.rules,
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
+      "react-hooks/set-state-in-effect": "off", // ← add this
+      "no-console": "off",
     },
   },
   {

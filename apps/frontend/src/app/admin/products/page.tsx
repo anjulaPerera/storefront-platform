@@ -70,13 +70,23 @@ export default function AdminProductsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
-    /* eslint-disable react-hooks/set-state-in-effect */
-
     if (params.get("action") === "new") {
       setShowForm(true);
     }
   }, []);
-
+  // Flattens the category tree into a flat array for use in dropdowns
+  function flattenCategoryTree(
+    cats: (Category & { children?: Category[] })[],
+  ): Category[] {
+    return cats.flatMap((c) => [
+      { id: c.id, name: c.name, slug: c.slug },
+      ...(c.children
+        ? flattenCategoryTree(
+            c.children as (Category & { children?: Category[] })[],
+          )
+        : []),
+    ]);
+  }
   async function load() {
     if (!accessToken) {
       setLoading(false);
@@ -88,15 +98,17 @@ export default function AdminProductsPage() {
         api.admin.listAllCategories(accessToken) as Promise<Category[]>,
       ]);
       setProducts(prods);
-      setCategories(cats.flat() ? (cats as unknown as Category[]) : cats);
-    } catch {
+setCategories(
+  flattenCategoryTree(
+    cats as unknown as (Category & { children?: Category[] })[],
+  ),
+);    } catch {
       /* silent */
     } finally {
       setLoading(false);
     }
   }
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     load();
   }, [accessToken]);
