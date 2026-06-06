@@ -5,6 +5,7 @@ import { AppProviders } from "@/components/providers/AppProviders";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TopStrip } from "@/components/layout/TopStrip";
+import { ChatWidget } from "@/components/ai/ChatWidget";
 import "@/app/globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -37,6 +38,7 @@ export default function RootLayout({
           <TopStrip />
           <Navbar />
           <main className="min-h-screen">{children}</main>
+          <ChatWidget />
           <Footer />
         </AppProviders>
       </body>
