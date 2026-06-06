@@ -5,9 +5,79 @@ on:
     branches: [main]
 
 jobs:
-  # ─── Deploy Backend to Render ──────────────────────────────────────────────
+  # ─── 1. RUN CI VERIFICATION CHECKS FIRST ───────────────────────────────────
+  ci-validation:
+    name: Validate Build Staging (Lint · Typecheck · Test)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER:     postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB:       storefront_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL:         postgresql://postgres:password@localhost:5432/storefront_test
+      JWT_ACCESS_SECRET:     ci_access_secret_minimum_32_characters
+      JWT_REFRESH_SECRET:    ci_refresh_secret_minimum_32_characters
+      JWT_ACCESS_EXPIRES:   15m
+      JWT_REFRESH_EXPIRES:  7d
+      NODE_ENV:             test
+      CORS_ORIGIN:          http://localhost:3000
+      RESEND_API_KEY:       ""
+      GEMINI_API_KEY:       test_key
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter backend lint
+
+      - name: Typecheck
+        run: pnpm --filter backend typecheck
+
+      - name: Run migrations on test DB
+        run: pnpm --filter backend db:migrate
+
+      - name: Run tests
+        run: pnpm --filter backend test:coverage
+
+  # ─── 2. DEPLOY BACKEND TO RENDER ───────────────────────────────────────────
   deploy-backend:
     name: Deploy Backend → Render
+    needs: ci-validation # Only triggers if tests pass successfully
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Render deploy hook
@@ -20,9 +90,10 @@ jobs:
           fi
           echo "✅ Render deploy triggered (HTTP $response)"
 
-  # ─── Deploy Frontend to Vercel ─────────────────────────────────────────────
+  # ─── 3. DEPLOY FRONTEND TO VERCEL ──────────────────────────────────────────
   deploy-frontend:
     name: Deploy Frontend → Vercel
+    needs: ci-validation # Only triggers if tests pass successfully
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
