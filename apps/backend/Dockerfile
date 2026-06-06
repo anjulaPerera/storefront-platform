@@ -24,12 +24,20 @@ FROM node:24-alpine AS runner
 RUN npm install -g pnpm
 WORKDIR /app
 ENV NODE_ENV=production
-# Only production deps
-COPY apps/backend/package.json ./package.json
+
+# Copy workspace structural configurations for pnpm isolation
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
+COPY apps/backend/package.json ./apps/backend/
+
+# Install isolated production dependencies
 RUN pnpm install --prod --frozen-lockfile
-# Copy compiled output
-COPY --from=builder /app/apps/backend/dist ./dist
+
+# Copy compiled distribution output from the builder stage
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD wget -qO- http://localhost:4000/api/v1/health || exit 1
-CMD ["node", "dist/server.js"]
+
+# Execute relative to the app base directory layer
+CMD ["node", "apps/backend/dist/server.js"]
