@@ -18,6 +18,9 @@ COPY . .
 WORKDIR /app/apps/backend
 RUN pnpm build
 
+# Temporarily add this to your Dockerfile after RUN pnpm build to see what's there:
+RUN find /app/apps/backend -name "*.js" | head -30
+
 # ─── Stage 3: Production runtime ──────────────────────────────────────────────
 FROM node:24-alpine AS runner
 RUN npm install -g pnpm@11
