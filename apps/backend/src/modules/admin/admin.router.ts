@@ -1,9 +1,11 @@
 import { Router } from "express";
+import type { Router as ExpressRouter } from "express";
 import { authMiddleware } from "@/middleware/auth.middleware";
 import { requireRole } from "@/middleware/role.middleware";
 import { pool } from "@/config/db";
 
-export const adminRouter = Router();
+export const adminRouter: ExpressRouter = Router();
+
 
 adminRouter.get(
   "/stats",
