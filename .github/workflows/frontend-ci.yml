@@ -6,15 +6,20 @@ on:
     paths:
       - 'apps/frontend/**'
       - 'packages/**'
+      - 'pnpm-workspace.yaml'
 
 jobs:
   ci:
-    name: Lint, Typecheck & Build
+    name: Lint · Typecheck · Build
     runs-on: ubuntu-latest
 
+    env:
+      NEXT_PUBLIC_API_URL:           http://localhost:4000/api/v1
+      NEXT_PUBLIC_SUPABASE_URL:      https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_key
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node 24
         uses: actions/setup-node@v4
@@ -25,6 +30,24 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      - name: Get pnpm store
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: apps/frontend/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('apps/frontend/**') }}
+          restore-keys: nextjs-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -37,5 +60,3 @@ jobs:
 
       - name: Build
         run: pnpm --filter frontend build
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
