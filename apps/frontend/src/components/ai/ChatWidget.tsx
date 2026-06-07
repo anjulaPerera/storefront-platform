@@ -97,11 +97,21 @@ export function ChatWidget() {
 
   if (!ai.enabled) return null;
 
+  function toggleChat() {
+    setOpen((prev) => {
+      const next = !prev;
+      if (next && !greetingShown.current) {
+        greetingShown.current = true;
+        setMessages([{ role: "assistant", content: ai.greetingMessage }]);
+      }
+      return next;
+    });
+  }
   return (
     <>
       {/* Floating button */}
       <button
-        onClick={handleToggle}
+        onClick={toggleChat}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:bg-primary-dark transition-all hover:scale-105 flex items-center justify-center"
         aria-label={open ? "Close chat" : `Chat with ${ai.assistantName}`}
       >

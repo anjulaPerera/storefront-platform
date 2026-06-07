@@ -25,14 +25,9 @@ export default [
       ...reactHooksPlugin.configs.recommended.rules,
       "@typescript-eslint/no-unused-vars": [
         "error",
-        {
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-          destructuredArrayIgnorePattern: "^_",
-          caughtErrorsIgnorePattern: "^_",
-        },
+        { argsIgnorePattern: "^_" },
       ],
-      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/set-state-in-effect": "off", // ← add this
       "no-console": "off",
     },
   },

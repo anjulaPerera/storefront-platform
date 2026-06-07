@@ -68,6 +68,7 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
     if (params.get("action") === "new") {
       setShowForm(true);
     }
