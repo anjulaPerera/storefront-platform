@@ -33,20 +33,25 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const [sessionId] = useState(getOrCreateSessionId); // ← lazy init, no effect needed
+
+  const [sessionId] = useState<string>(() =>
+    typeof window === "undefined" ? "" : getOrCreateSessionId(),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const greetingShown = useRef(false);
 
+  // Greeting + focus on open
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  // Scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
-
-  function handleToggle() {
-    if (!open && messages.length === 0) {
-      setMessages([{ role: "assistant", content: ai.greetingMessage }]);
-    }
-    setOpen((o) => !o);
-  }
 
   async function sendMessage() {
     const text = input.trim();
