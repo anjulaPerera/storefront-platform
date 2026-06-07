@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { StarRating } from "@/components/ui/StarRating";
 import { Badge } from "@/components/ui/Badge";
+import { useAdminData } from "@/hooks/useAdminData";
 
 interface Review {
   id: string;
@@ -20,36 +20,26 @@ interface Review {
 
 export default function AdminReviewsPage() {
   const { accessToken } = useAuthStore();
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  async function load() {
-    if (!accessToken) return;
-    setLoading(true);
-    try {
-      setReviews((await api.admin.listPendingReviews(accessToken)) as Review[]);
-    } catch {
-      /* silent */
-    }
-    setLoading(false);
-  }
-
-  
-
-  useEffect(() => {
-    load();
-  }, [accessToken]);
+  const {
+    data: reviews = [],
+    loading,
+    reload,
+  } = useAdminData(
+    (token) => api.admin.listPendingReviews(token) as Promise<Review[]>,
+    accessToken,
+  );
 
   async function approve(id: string) {
     if (!accessToken) return;
     await api.admin.approveReview(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   async function remove(id: string) {
     if (!accessToken || !confirm("Delete this review?")) return;
     await api.admin.deleteReview(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   return (

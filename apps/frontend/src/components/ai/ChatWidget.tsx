@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { api, ApiError } from "@/lib/api";
-import { useAuthStore } from "@/store/auth.store";
 
 interface Message {
   role: "user" | "assistant";
@@ -29,38 +28,30 @@ function getOrCreateSessionId(): string {
 
 export function ChatWidget() {
   const { ai } = tenantConfig;
-  const { user } = useAuthStore();
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+
+  const [sessionId] = useState<string>(() =>
+    typeof window === "undefined" ? "" : getOrCreateSessionId(),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-
   const greetingShown = useRef(false);
 
-const [sessionId] = useState<string>(() =>
-  typeof window === "undefined" ? "" : getOrCreateSessionId(),
-);
+  // Greeting + focus on open
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(timer);
+  }, [open]);
 
-useEffect(() => {
-  if (!open) return;
-
-  // Show greeting only once
-  if (!greetingShown.current) {
-    greetingShown.current = true;
-    setMessages([{ role: "assistant", content: ai.greetingMessage }]);
-  }
-
-  // Focus input after animation
-  const timer = setTimeout(() => inputRef.current?.focus(), 150);
-  return () => clearTimeout(timer);
-}, [open, ai.greetingMessage]);
-
-useEffect(() => {
-  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages, typing]);
+  // Scroll to bottom
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, typing]);
 
   async function sendMessage() {
     const text = input.trim();

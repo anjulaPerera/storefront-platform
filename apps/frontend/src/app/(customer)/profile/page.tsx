@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { ProfileForm } from "./ProfileForm";
 
 export default function ProfilePage() {

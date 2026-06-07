@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { Badge } from "@/components/ui/Badge";
+import { useAdminData } from "@/hooks/useAdminData";
 
 interface Enquiry {
   id: string;
@@ -27,46 +28,34 @@ const STATUS_COLOR: Record<string, "warning" | "success" | "outline"> = {
 
 export default function AdminEnquiriesPage() {
   const { accessToken } = useAuthStore();
-  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<Enquiry | null>(null);
   const [filter, setFilter] = useState("");
-
-  async function load() {
-    if (!accessToken) return;
-    setLoading(true);
-    try {
-      const params = filter ? { status: filter } : undefined;
-      const res = (await api.admin.listEnquiries(
-        accessToken,
-        params,
-      )) as Enquiry[];
-      setEnquiries(res);
-    } catch {
-      /* silent */
-    }
-    setLoading(false);
-  }
-
-  
-
-  useEffect(() => {
-    load();
-  }, [accessToken, filter]);
+const {
+  data: enquiries = [],
+  loading,
+  reload,
+} = useAdminData(
+  (token) => {
+    const params = filter ? { status: filter } : undefined;
+    return api.admin.listEnquiries(token, params) as Promise<Enquiry[]>;
+  },
+  accessToken,
+  filter, 
+);
 
   async function updateStatus(id: string, status: string) {
     if (!accessToken) return;
     await api.admin
       .updateEnquiryStatus(id, status, accessToken)
       .catch(() => {});
-    await load();
+    await reload();
     setViewing((prev) => (prev?.id === id ? { ...prev, status } : prev));
   }
 
   async function handleDelete(id: string) {
     if (!accessToken || !confirm("Delete enquiry?")) return;
     await api.admin.deleteEnquiry(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   return (

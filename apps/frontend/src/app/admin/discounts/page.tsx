@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { Badge } from "@/components/ui/Badge";
 import { tenantConfig } from "@storefront/config";
+import { useAdminData } from "@/hooks/useAdminData";
 
 interface Discount {
   id: string;
@@ -41,10 +42,6 @@ const EMPTY = {
 
 export default function AdminDiscountsPage() {
   const { accessToken } = useAuthStore();
-  const [discounts, setDiscounts] = useState<Discount[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Discount | null>(null);
   const [form, setForm] = useState(EMPTY);
@@ -52,29 +49,23 @@ export default function AdminDiscountsPage() {
   const [error, setError] = useState("");
   const { currencySymbol } = tenantConfig.identity;
 
-  async function load() {
-    if (!accessToken) return;
-    setLoading(true);
-    try {
-      const [d, c, p] = await Promise.all([
-        api.admin.listAllDiscounts(accessToken) as Promise<Discount[]>,
-        api.admin.listAllCategories(accessToken) as Promise<Category[]>,
-        api.admin.listAllProducts(accessToken) as Promise<Product[]>,
-      ]);
-      setDiscounts(d);
-      setCategories(c);
-      setProducts(p);
-    } catch {
-      /* silent */
-    }
-    setLoading(false);
-  }
+const { data, loading, reload } = useAdminData(
+  (token) =>
+    Promise.all([
+      api.admin.listAllDiscounts(token) as Promise<Discount[]>,
+      api.admin.listAllCategories(token) as Promise<Category[]>,
+      api.admin.listAllProducts(token) as Promise<Product[]>,
+    ]).then(([discounts, categories, products]) => ({
+      discounts,
+      categories,
+      products,
+    })),
+  accessToken,
+);
 
-  
-
-  useEffect(() => {
-    load();
-  }, [accessToken]);
+const discounts = data?.discounts ?? [];
+const categories = data?.categories ?? [];
+const products = data?.products ?? [];
 
   function openCreate() {
     setEditing(null);
@@ -82,6 +73,7 @@ export default function AdminDiscountsPage() {
     setError("");
     setShowForm(true);
   }
+
   function openEdit(d: Discount) {
     setEditing(d);
     setForm({
@@ -120,7 +112,7 @@ export default function AdminDiscountsPage() {
         await api.admin.createDiscount(data, accessToken);
       }
       setShowForm(false);
-      await load();
+      await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -130,7 +122,7 @@ export default function AdminDiscountsPage() {
   async function handleDelete(id: string) {
     if (!accessToken || !confirm("Delete discount?")) return;
     await api.admin.deleteDiscount(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   return (

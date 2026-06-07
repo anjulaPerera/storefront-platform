@@ -2,18 +2,19 @@
 const config = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/src"], // Removed non-existent tests directory path
+  roots: ["<rootDir>/src", "<rootDir>/tests"],
   testMatch: ["**/*.test.ts"],
-  moduleNameMapper: {
-    // Strips trailing .js extensions so Jest maps cleanly onto your local .ts source files
-    "^@/(.*)\\.js$": "<rootDir>/src/$1",
-    "^@/(.*)$": "<rootDir>/src/$1",
-  },
-  transform: {
-    "^.+\\.tsx?$": ["ts-jest", { 
+  setupFiles: ["dotenv/config"],
+  globals: {
+    '^.+\\.tsx?$': [
+    "ts-jest", {
       tsconfig: "./tsconfig.jest.json",
-      diagnostics: { ignoreCodes: [151002]} 
-    }],
+    },]
+  },
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@storefront/config$": "<rootDir>/../../packages/config/src/index",
+    "^@storefront/types$": "<rootDir>/../../packages/types/src/index",
   },
   coverageDirectory: "coverage",
   collectCoverageFrom: [

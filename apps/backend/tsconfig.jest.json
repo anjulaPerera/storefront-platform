@@ -1,4 +1,14 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "ignoreDeprecations": "5.0",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@storefront/config": ["../../packages/config/src/index"],
+      "@storefront/types": ["../../packages/types/src/index"]
+    }
+  },
   "include": ["src/**/*", "tests/**/*"]
 }

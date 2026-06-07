@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { Badge } from "@/components/ui/Badge";
+import { useAdminData } from "@/hooks/useAdminData";
 
 interface User {
   id: string;
@@ -24,38 +25,30 @@ const ROLE_COLOR: Record<string, "default" | "warning" | "danger"> = {
 
 export default function AdminUsersPage() {
   const { accessToken, user: me } = useAuthStore();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
 
-  async function load() {
-    if (!accessToken) return;
-    setLoading(true);
-    try {
-      const params = filter ? { role: filter } : undefined;
-      setUsers((await api.admin.listUsers(accessToken, params)) as User[]);
-    } catch {
-      /* silent */
-    }
-    setLoading(false);
-  }
-
-  
-
-  useEffect(() => {
-    load();
-  }, [accessToken, filter]);
-
+const {
+  data: users = [],
+  loading,
+  reload,
+} = useAdminData(
+  (token) => {
+    const params = filter ? { role: filter } : undefined;
+    return api.admin.listUsers(token, params) as Promise<User[]>;
+  },
+  accessToken,
+  filter, 
+);
   async function toggleUser(id: string) {
     if (!accessToken || id === me?.id) return;
     await api.admin.toggleUser(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   async function changeRole(id: string, role: string) {
     if (!accessToken || me?.role !== "super_admin") return;
     await api.admin.changeUserRole(id, role, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   return (

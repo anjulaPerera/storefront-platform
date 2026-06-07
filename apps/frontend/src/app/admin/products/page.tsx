@@ -9,6 +9,7 @@ import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AttributeEditor } from "@/components/admin/AttributeEditor";
 import { Badge } from "@/components/ui/Badge";
+import { useAdminData } from "@/hooks/useAdminData";
 
 interface Product {
   id: string;
@@ -56,11 +57,9 @@ const EMPTY_FORM = {
 export default function AdminProductsPage() {
   const { accessToken } = useAuthStore();
   const { currencySymbol } = tenantConfig.identity;
-  const [showForm, setShowForm] = useState(false);
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ← lazy init: reads the URL once on mount, no effect needed
+  const [showForm, setShowForm] = useState(false);
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -74,44 +73,18 @@ export default function AdminProductsPage() {
       setShowForm(true);
     }
   }, []);
-  // Flattens the category tree into a flat array for use in dropdowns
-  function flattenCategoryTree(
-    cats: (Category & { children?: Category[] })[],
-  ): Category[] {
-    return cats.flatMap((c) => [
-      { id: c.id, name: c.name, slug: c.slug },
-      ...(c.children
-        ? flattenCategoryTree(
-            c.children as (Category & { children?: Category[] })[],
-          )
-        : []),
-    ]);
-  }
-  async function load() {
-    if (!accessToken) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const [prods, cats] = await Promise.all([
-        api.admin.listAllProducts(accessToken) as Promise<Product[]>,
-        api.admin.listAllCategories(accessToken) as Promise<Category[]>,
-      ]);
-      setProducts(prods);
-setCategories(
-  flattenCategoryTree(
-    cats as unknown as (Category & { children?: Category[] })[],
-  ),
-);    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
-  }
 
-  useEffect(() => {
-    load();
-  }, [accessToken]);
+  const { data, loading, reload } = useAdminData(
+    (token) =>
+      Promise.all([
+        api.admin.listAllProducts(token) as Promise<Product[]>,
+        api.admin.listAllCategories(token) as Promise<Category[]>,
+      ]).then(([products, categories]) => ({ products, categories })),
+    accessToken,
+  );
+
+  const products = data?.products ?? [];
+  const categories = data?.categories ?? [];
 
   function openCreate() {
     setEditing(null);
@@ -170,7 +143,7 @@ setCategories(
         await api.admin.createProduct(data, accessToken);
       }
       setShowForm(false);
-      await load();
+      await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     }
@@ -180,13 +153,13 @@ setCategories(
   async function handleToggle(id: string) {
     if (!accessToken) return;
     await api.admin.toggleProduct(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   async function handleDelete(id: string) {
     if (!accessToken || !confirm("Deactivate this product?")) return;
     await api.admin.deleteProduct(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   const selectedCategoryKey =

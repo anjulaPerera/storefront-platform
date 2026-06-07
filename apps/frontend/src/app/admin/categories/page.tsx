@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { Badge } from "@/components/ui/Badge";
+import { useAdminData } from "@/hooks/useAdminData";
 
 interface Category {
   id: string;
@@ -28,8 +29,6 @@ const EMPTY = {
 
 export default function AdminCategoriesPage() {
   const { accessToken } = useAuthStore();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState(EMPTY);
@@ -47,25 +46,14 @@ export default function AdminCategoriesPage() {
     ]);
   }
 
-  async function load() {
-    if (!accessToken) return;
-    setLoading(true);
-    try {
-      const data = (await api.admin.listAllCategories(
-        accessToken,
-      )) as Category[];
-      setCategories(data);
-    } catch {
-      /* silent */
-    }
-    setLoading(false);
-  }
-
-  
-
-  useEffect(() => {
-    load();
-  }, [accessToken]);
+const {
+  data: categories = [], 
+  loading,
+  reload,
+} = useAdminData(
+  (token) => api.admin.listAllCategories(token) as Promise<Category[]>,
+  accessToken,
+);
 
   function openCreate() {
     setEditing(null);
@@ -106,7 +94,7 @@ export default function AdminCategoriesPage() {
         await api.admin.createCategory(data, accessToken);
       }
       setShowForm(false);
-      await load();
+      await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     }
@@ -117,7 +105,7 @@ export default function AdminCategoriesPage() {
     if (!accessToken || !confirm("Delete this category?")) return;
     try {
       await api.admin.deleteCategory(id, accessToken);
-      await load();
+      await reload();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Cannot delete category");
     }
