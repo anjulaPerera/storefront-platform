@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
@@ -59,14 +59,19 @@ export default function AdminProductsPage() {
   const { currencySymbol } = tenantConfig.identity;
 
   // ← lazy init: reads the URL once on mount, no effect needed
-  const [showForm, setShowForm] = useState(
-    () => new URLSearchParams(window.location.search).get("action") === "new",
-  );
+  const [showForm, setShowForm] = useState(false);
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "new") {
+      setShowForm(true);
+    }
+  }, []);
 
   const { data, loading, reload } = useAdminData(
     (token) =>
