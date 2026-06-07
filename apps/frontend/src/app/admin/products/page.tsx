@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
@@ -9,6 +9,7 @@ import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AttributeEditor } from "@/components/admin/AttributeEditor";
 import { Badge } from "@/components/ui/Badge";
+import { useAdminData } from "@/hooks/useAdminData";
 
 interface Product {
   id: string;
@@ -56,50 +57,28 @@ const EMPTY_FORM = {
 export default function AdminProductsPage() {
   const { accessToken } = useAuthStore();
   const { currencySymbol } = tenantConfig.identity;
-  const [showForm, setShowForm] = useState(false);
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ← lazy init: reads the URL once on mount, no effect needed
+  const [showForm, setShowForm] = useState(
+    () => new URLSearchParams(window.location.search).get("action") === "new",
+  );
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+  const { data, loading, reload } = useAdminData(
+    (token) =>
+      Promise.all([
+        api.admin.listAllProducts(token) as Promise<Product[]>,
+        api.admin.listAllCategories(token) as Promise<Category[]>,
+      ]).then(([products, categories]) => ({ products, categories })),
+    accessToken,
+  );
 
-    /* eslint-disable react-hooks/set-state-in-effect */
-
-    if (params.get("action") === "new") {
-      setShowForm(true);
-    }
-  }, []);
-
-  async function load() {
-    if (!accessToken) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const [prods, cats] = await Promise.all([
-        api.admin.listAllProducts(accessToken) as Promise<Product[]>,
-        api.admin.listAllCategories(accessToken) as Promise<Category[]>,
-      ]);
-      setProducts(prods);
-      setCategories(cats.flat() ? (cats as unknown as Category[]) : cats);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    load();
-  }, [accessToken]);
+  const products = data?.products ?? [];
+  const categories = data?.categories ?? [];
 
   function openCreate() {
     setEditing(null);
@@ -158,7 +137,7 @@ export default function AdminProductsPage() {
         await api.admin.createProduct(data, accessToken);
       }
       setShowForm(false);
-      await load();
+      await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     }
@@ -168,13 +147,13 @@ export default function AdminProductsPage() {
   async function handleToggle(id: string) {
     if (!accessToken) return;
     await api.admin.toggleProduct(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   async function handleDelete(id: string) {
     if (!accessToken || !confirm("Deactivate this product?")) return;
     await api.admin.deleteProduct(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   const selectedCategoryKey =

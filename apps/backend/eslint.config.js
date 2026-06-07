@@ -21,6 +21,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["dist/", "coverage/", "jest.config.ts"],
+    ignores: ["dist/", "coverage/", "jest.config.cjs"],
   },
 );
