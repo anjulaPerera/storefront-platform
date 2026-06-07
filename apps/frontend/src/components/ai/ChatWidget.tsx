@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { api, ApiError } from "@/lib/api";
-import { useAuthStore } from "@/store/auth.store";
 
 interface Message {
   role: "user" | "assistant";
@@ -29,35 +28,25 @@ function getOrCreateSessionId(): string {
 
 export function ChatWidget() {
   const { ai } = tenantConfig;
-  const { user } = useAuthStore();
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const [sessionId, setSessionId] = useState("");
+  const [sessionId] = useState(getOrCreateSessionId); // ← lazy init, no effect needed
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-
-  useEffect(() => {
-    setSessionId(getOrCreateSessionId());
-  }, []);
-
-  useEffect(() => {
-    if (open && messages.length === 0) {
-      // Show greeting on first open
-      setMessages([{ role: "assistant", content: ai.greetingMessage }]);
-    }
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [open]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
+
+  function handleToggle() {
+    if (!open && messages.length === 0) {
+      setMessages([{ role: "assistant", content: ai.greetingMessage }]);
+    }
+    setOpen((o) => !o);
+  }
 
   async function sendMessage() {
     const text = input.trim();
@@ -112,7 +101,7 @@ export function ChatWidget() {
     <>
       {/* Floating button */}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={handleToggle}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:bg-primary-dark transition-all hover:scale-105 flex items-center justify-center"
         aria-label={open ? "Close chat" : `Chat with ${ai.assistantName}`}
       >

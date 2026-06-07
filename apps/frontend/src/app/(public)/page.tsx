@@ -56,7 +56,7 @@ async function getData() {
 
 export default async function HomePage() {
   const { featured, promoBanner, categories } = await getData();
-  const { pages, identity, theme } = tenantConfig;
+  const { pages, theme } = tenantConfig;
 
   return (
     <>

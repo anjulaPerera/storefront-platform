@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { Badge } from "@/components/ui/Badge";
+import { useAdminData } from "@/hooks/useAdminData";
 
 interface Banner {
   id: string;
@@ -36,30 +37,20 @@ const EMPTY = {
 
 export default function AdminBannersPage() {
   const { accessToken } = useAuthStore();
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Banner | null>(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
-    if (!accessToken) return;
-    setLoading(true);
-    try {
-      setBanners((await api.admin.listAllBanners(accessToken)) as Banner[]);
-    } catch {
-      /* silent */
-    }
-    setLoading(false);
-  }
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-
-  useEffect(() => {
-    load();
-  }, [accessToken]);
+const {
+  data: banners = [], // default to [] so .map() never breaks
+  loading,
+  reload, 
+} = useAdminData(
+  (token) => api.admin.listAllBanners(token) as Promise<Banner[]>,
+  accessToken,
+);
 
   function openCreate() {
     setEditing(null);
@@ -110,7 +101,7 @@ export default function AdminBannersPage() {
         await api.admin.createBanner(data, accessToken);
       }
       setShowForm(false);
-      await load();
+      await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     }
@@ -120,7 +111,7 @@ export default function AdminBannersPage() {
   async function handleDelete(id: string) {
     if (!accessToken || !confirm("Delete banner?")) return;
     await api.admin.deleteBanner(id, accessToken).catch(() => {});
-    await load();
+    await reload();
   }
 
   return (
@@ -139,7 +130,7 @@ export default function AdminBannersPage() {
         <div className="text-center py-12 text-muted">Loading…</div>
       ) : (
         <AdminTable
-          rows={banners}
+          rows={banners ?? []}
           keyFn={(b) => b.id}
           empty="No banners"
           columns={[

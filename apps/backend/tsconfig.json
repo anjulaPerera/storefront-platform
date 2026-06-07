@@ -12,10 +12,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
     "isolatedModules": true,
+    "declaration": false,
+    "sourceMap": true,
     "paths": {
       "@/*": ["./src/*"],
       "@storefront/config": ["../../packages/config/src/index"],
