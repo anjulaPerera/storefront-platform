@@ -96,15 +96,36 @@ jobs:
     needs: ci-validation
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render deploy hook
+      # ✅ NEW: Validate the Render webhook URL is configured before attempting deployment
+      - name: Validate Render webhook URL is set
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
-          if [ "$response" != "200" ] && [ "$response" != "201" ]; then
-            echo "Render deploy hook returned HTTP $response"
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "❌ FATAL ERROR: RENDER_DEPLOY_HOOK_URL secret is not configured"
+            echo "📝 Please add it here: https://github.com/anjulaPerera/storefront-platform/settings/secrets/actions"
+            echo "📖 Instructions: Get the deploy hook URL from Render dashboard → Your Service → Settings → Deploy Hook"
             exit 1
           fi
-          echo "✅ Render deploy triggered (HTTP $response)"
+          echo "✅ RENDER_DEPLOY_HOOK_URL is configured and ready"
+
+      # ✅ MODIFIED: Enhanced deploy step with better error handling
+      - name: Trigger Render deploy hook
+        run: |
+          echo "🚀 Triggering Render deployment..."
+          
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          
+          if [ "$response" != "200" ] && [ "$response" != "201" ]; then
+            echo "❌ Render deploy hook failed with HTTP $response"
+            echo "⚠️  Possible causes:"
+            echo "   - URL is incorrect (copy it from Render dashboard again)"
+            echo "   - Service has been deleted on Render"
+            echo "   - Network connectivity issue"
+            exit 1
+          fi
+          
+          echo "✅ Render deploy triggered successfully (HTTP $response)"
+          echo "📊 Check your Render dashboard for deployment progress"
 
   # ─── 3. DEPLOY FRONTEND TO VERCEL ──────────────────────────────────────────
   deploy-frontend:
