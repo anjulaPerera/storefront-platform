@@ -1,120 +1,235 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { useState } from 'react';
-import { tenantConfig } from '@storefront/config';
-import { useAuthStore } from '@/store/auth.store';
-import { useUIStore } from '@/store/ui.store';
-import { useWishlistStore } from '@/store/wishlist.store';
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { tenantConfig } from "@storefront/config";
+import { useAuthStore } from "@/store/auth.store";
+import { useWishlistStore } from "@/store/wishlist.store";
+import { useUIStore } from "@/store/ui.store";
 
 const { navigation, identity } = tenantConfig;
 
 export function Navbar() {
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const { user, logout }  = useAuthStore();
+  const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { user, logout } = useAuthStore();
   const { mobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useUIStore();
   const wishlistCount = useWishlistStore((s) => s.productIds.size);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
+  useEffect(() => {
+    closeMobileMenu();
+  }, [pathname]);
+
+  const isHome = pathname === "/";
 
   return (
-    <nav className="sticky top-0 z-50 bg-surface border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 flex-shrink-0"
-            onClick={closeMobileMenu}
+    <>
+      {/* ─── Desktop Navbar ─────────────────────────────────────────── */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          scrolled ? "py-3" : "py-5"
+        }`}
+      >
+        <div className="container-wide">
+          <nav
+            className={`flex items-center justify-between transition-all duration-500 ${
+              scrolled
+                ? "glass-2 rounded-full px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+                : "px-0"
+            }`}
           >
-            <Image
-              src={identity.logoPath}
-              alt={identity.shopName}
-              width={40}
-              height={40}
-              className="h-10 w-auto"
-              onError={() => {
-                /* fallback handled by alt text */
-              }}
-            />
-            <span className="font-bold text-xl text-primary hidden sm:block">
-              {identity.shopName}
-            </span>
-          </Link>
-
-          {/* Desktop nav */}
-          <div className="hidden lg:flex items-center gap-1">
-            {navigation.topLinks.map((link) => (
-              <div
-                key={link.href}
-                className="relative"
-                onMouseEnter={() => link.children && setOpenDropdown(link.href)}
-                onMouseLeave={() => setOpenDropdown(null)}
-              >
-                <Link
-                  href={link.href}
-                  className="px-3 py-2 rounded-md text-sm font-medium text-foreground hover:text-primary hover:bg-gray-50 transition-colors"
-                >
-                  {link.label}
-                  {link.children && <span className="ml-1 text-xs">▾</span>}
-                </Link>
-
-                {/* Dropdown */}
-                {link.children && openDropdown === link.href && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-surface rounded-md shadow-lg border border-gray-100 py-1 z-50">
-                    {link.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className="block px-4 py-2 text-sm text-foreground hover:text-primary hover:bg-gray-50"
-                      >
-                        {child.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Right actions */}
-          <div className="flex items-center gap-2">
-            {/* Wishlist */}
+            {/* Logo */}
             <Link
-              href="/wishlist"
-              className="relative p-2 text-foreground hover:text-primary transition-colors"
-              aria-label="Wishlist"
+              href="/"
+              className="flex items-center gap-2.5 flex-shrink-0 group"
+              onClick={closeMobileMenu}
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                />
-              </svg>
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                  {wishlistCount > 9 ? "9+" : wishlistCount}
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center transition-all duration-300 group-hover:shadow-glow-sm">
+                <span className="font-display font-bold text-white text-sm">
+                  R
                 </span>
-              )}
+              </div>
+              <span className="font-display font-bold text-lg text-foreground tracking-tight">
+                {identity.shopName}
+              </span>
             </Link>
 
-            {/* Account */}
-            {user ? (
-              <div className="relative group">
-                <button
-                  className="flex items-center gap-2 p-2 text-sm text-foreground hover:text-primary transition-colors"
-                  aria-label="Account menu"
+            {/* Desktop links */}
+            <div className="hidden lg:flex items-center gap-1">
+              {navigation.topLinks.map((link) => {
+                const active =
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(link.href);
+
+                return (
+                  <div key={link.href} className="relative group">
+                    <Link
+                      href={
+                        link.children
+                          ? (link.children.at(-1)?.href ?? link.href)
+                          : link.href
+                      }
+                      className={`flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                        active
+                          ? "text-white bg-white/10"
+                          : "text-white/60 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      {link.label}
+                      {link.children && (
+                        <svg
+                          className="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      )}
+                    </Link>
+
+                    {/* Dropdown — pt-2 creates invisible hover bridge, no gap */}
+                    {link.children && (
+                      <div
+                        className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-52
+                          opacity-0 invisible
+                          group-hover:opacity-100 group-hover:visible
+                          transition-all duration-150 z-50"
+                      >
+                        <div className="glass-2 rounded-2xl border border-border-mid overflow-hidden shadow-card">
+                          <div className="py-2">
+                            {link.children.map((child) => (
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                className="flex items-center px-4 py-2.5 text-sm text-muted hover:text-white hover:bg-white/5 transition-colors"
+                              >
+                                {child.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Right actions */}
+            <div className="flex items-center gap-1.5">
+              {/* Search */}
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="p-2.5 rounded-full text-muted hover:text-white hover:bg-white/5 transition-colors"
+                aria-label="Search"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </button>
+
+              {/* Wishlist */}
+              <Link
+                href="/wishlist"
+                className="relative p-2.5 rounded-full text-muted hover:text-white hover:bg-white/5 transition-colors"
+                aria-label="Wishlist"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+                {wishlistCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {wishlistCount > 9 ? "9+" : wishlistCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Account */}
+              {user ? (
+                <div className="relative group">
+                  <button className="flex items-center gap-2 px-3 py-2 rounded-full glass border border-border-mid hover:border-border-bright transition-all text-sm font-medium text-foreground">
+                    <span className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[11px] font-bold text-white">
+                      {user.firstName[0]}
+                    </span>
+                    <span className="hidden sm:block">{user.firstName}</span>
+                  </button>
+                  <div className="absolute right-0 top-full mt-2 w-48 glass-2 rounded-2xl border border-border-mid overflow-hidden shadow-card opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                    <div className="py-2">
+                      <Link
+                        href="/profile"
+                        className="flex items-center px-4 py-2.5 text-sm text-muted hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        My Profile
+                      </Link>
+                      {(user.role === "admin" ||
+                        user.role === "super_admin") && (
+                        <Link
+                          href="/admin"
+                          className="flex items-center px-4 py-2.5 text-sm text-muted hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          Admin Dashboard
+                        </Link>
+                      )}
+                      <hr className="my-1 border-border" />
+                      <button
+                        onClick={() => logout()}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 transition-colors"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Link href="/login" className="btn-primary text-sm px-5 py-2">
+                  Sign In
+                </Link>
+              )}
+
+              {/* Mobile hamburger */}
+              <button
+                onClick={toggleMobileMenu}
+                className="lg:hidden p-2.5 rounded-full text-muted hover:text-white hover:bg-white/5 transition-colors"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              >
+                {mobileMenuOpen ? (
                   <svg
-                    className="w-6 h-6"
+                    className="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -123,54 +238,108 @@ export function Navbar() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
-                  <span className="hidden sm:block">{user.firstName}</span>
-                </button>
-                <div className="absolute right-0 top-full mt-1 w-48 bg-surface rounded-md shadow-lg border border-gray-100 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                  <Link
-                    href="/profile"
-                    className="block px-4 py-2 text-sm text-foreground hover:bg-gray-50"
+                ) : (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    My Profile
-                  </Link>
-                  {(user.role === "admin" || user.role === "super_admin") && (
-                    <Link
-                      href="/admin"
-                      className="block px-4 py-2 text-sm text-foreground hover:bg-gray-50"
-                    >
-                      Admin Dashboard
-                    </Link>
-                  )}
-                  <hr className="my-1" />
-                  <button
-                    onClick={() => logout()}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded-md transition-colors"
-              >
-                Sign In
-              </Link>
-            )}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </nav>
+        </div>
+      </header>
 
-            {/* Mobile hamburger */}
-            <button
-              onClick={toggleMobileMenu}
-              className="lg:hidden p-2 text-foreground hover:text-primary transition-colors"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileMenuOpen}
-            >
-              {mobileMenuOpen ? (
+      {/* ─── Mobile Menu ─────────────────────────────────────────────── */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 flex flex-col pt-24 lg:hidden">
+          <div
+            className="absolute inset-0 bg-space-1/95 backdrop-blur-2xl"
+            onClick={closeMobileMenu}
+          />
+          <nav className="relative z-10 px-6 py-4 space-y-1">
+            {navigation.topLinks.map((link) => (
+              <div key={link.href}>
+                <Link
+                  href={
+                    link.children
+                      ? (link.children[link.children.length - 1]?.href ??
+                        link.href)
+                      : link.href
+                  }
+                  onClick={closeMobileMenu}
+                  className="block px-4 py-3 rounded-xl text-base font-semibold text-foreground hover:bg-white/5 transition-colors font-display"
+                >
+                  {link.label}
+                </Link>
+                {link.children?.slice(0, -1).map((child) => (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    onClick={closeMobileMenu}
+                    className="block px-8 py-2 text-sm text-muted hover:text-white transition-colors"
+                  >
+                    {child.label}
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </nav>
+        </div>
+      )}
+
+      {/* ─── Search Overlay ──────────────────────────────────────────── */}
+      {searchOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4"
+          onClick={() => setSearchOpen(false)}
+        >
+          <div className="absolute inset-0 bg-space-1/80 backdrop-blur-xl" />
+          <div
+            className="relative w-full max-w-2xl glass-2 rounded-2xl border border-border-bright shadow-card overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 p-4">
+              <svg
+                className="w-5 h-5 text-muted flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <form action="/search" className="flex-1">
+                <input
+                  name="q"
+                  autoFocus
+                  placeholder="Search phones, brands, accessories…"
+                  className="w-full bg-transparent text-white text-lg placeholder-muted outline-none font-body"
+                />
+              </form>
+              <button
+                onClick={() => setSearchOpen(false)}
+                className="text-muted hover:text-white p-1"
+                aria-label="open-search"
+              >
                 <svg
-                  className="w-6 h-6"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -182,52 +351,16 @@ export function Navbar() {
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
-              ) : (
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              )}
-            </button>
+              </button>
+            </div>
+            <div className="px-4 pb-4">
+              <p className="text-xs text-muted">
+                Press Enter to search · ESC to close
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 py-3">
-            {navigation.topLinks.map((link) => (
-              <div key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={closeMobileMenu}
-                  className="block px-4 py-2 text-sm font-medium text-foreground hover:text-primary hover:bg-gray-50"
-                >
-                  {link.label}
-                </Link>
-                {link.children?.map((child) => (
-                  <Link
-                    key={child.href}
-                    href={child.href}
-                    onClick={closeMobileMenu}
-                    className="block px-8 py-2 text-sm text-muted hover:text-primary hover:bg-gray-50"
-                  >
-                    {child.label}
-                  </Link>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </nav>
+      )}
+    </>
   );
 }

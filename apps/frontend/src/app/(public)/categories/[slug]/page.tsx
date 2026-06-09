@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { FadeIn } from "@/components/motion/FadeIn";
 
 interface Category {
   id: string;
@@ -46,13 +47,11 @@ export default async function CategoryPage({
   let products: Product[] = [];
 
   try {
-    [category] = await Promise.all([
-      apiFetch<Category>(`/categories/${params.slug}`, {
-        next: { revalidate: 300 },
-      }),
-    ]);
+    category = await apiFetch<Category>(`/categories/${params.slug}`, {
+      next: { revalidate: 300 },
+    });
     const res = (await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/products?categorySlug=${params.slug}&limit=20`,
+      `${process.env.NEXT_PUBLIC_API_URL}/products?categorySlug=${params.slug}&limit=24`,
       { next: { revalidate: 300 } },
     ).then((r) => r.json())) as { data: Product[] };
     products = res.data;
@@ -60,22 +59,75 @@ export default async function CategoryPage({
     notFound();
   }
 
+  // Hero gradient per category
+  const heroColors: Record<string, string> = {
+    smartphones: "rgba(37,99,235,0.35)",
+    tablets: "rgba(124,58,237,0.3)",
+    accessories: "rgba(245,158,11,0.25)",
+  };
+  const glow = heroColors[params.slug] ?? "rgba(37,99,235,0.25)";
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Breadcrumb
-        items={[
-          { label: "Home", href: "/" },
-          { label: "Products", href: "/products" },
-          { label: category.name },
-        ]}
-      />
-      <h1 className="text-2xl font-bold text-foreground mb-2">
-        {category.name}
-      </h1>
-      {category.description && (
-        <p className="text-muted mb-6">{category.description}</p>
-      )}
-      <ProductGrid products={products} columns={4} />
+    <div className="min-h-screen">
+      {/* Category Hero */}
+      <section
+        className="relative pt-32 pb-20 text-center overflow-hidden"
+        style={{
+          background: `radial-gradient(ellipse 70% 60% at 50% 0%, ${glow} 0%, transparent 65%), #050816`,
+        }}
+      >
+        {/* Stars */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+        >
+          {Array.from({ length: 50 }, (_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full bg-white animate-twinkle"
+              style={{
+                top: `${(i * 37) % 100}%`,
+                left: `${(i * 53) % 100}%`,
+                width: `${((i * 7) % 2) + 1}px`,
+                height: `${((i * 7) % 2) + 1}px`,
+                opacity: ((i * 11) % 50) / 100 + 0.1,
+                animationDelay: `${((i * 3) % 30) / 10}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="relative z-10 container-wide">
+          <Breadcrumb
+            items={[
+              { label: "Home", href: "/" },
+              { label: "Products", href: "/products" },
+              { label: category!.name },
+            ]}
+          />
+
+          <FadeIn>
+            <h1 className="font-display font-black text-hero text-white mt-6 mb-4">
+              {category!.name}
+            </h1>
+            {category!.description && (
+              <p className="text-muted max-w-lg mx-auto text-lg">
+                {category!.description}
+              </p>
+            )}
+            <p className="text-sm text-dim mt-4">{products.length} products</p>
+          </FadeIn>
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-space-1 to-transparent pointer-events-none" />
+      </section>
+
+      {/* Products */}
+      <section className="container-wide py-16">
+        <FadeIn variant="scale">
+          <ProductGrid products={products} columns={4} />
+        </FadeIn>
+      </section>
     </div>
   );
 }

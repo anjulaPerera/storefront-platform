@@ -38,7 +38,7 @@ export default async function SearchPage({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-[70vh] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Search" }]} />
       <h1 className="text-2xl font-bold text-foreground mb-6">
         {query ? `Results for "${query}"` : "Search Products"}
