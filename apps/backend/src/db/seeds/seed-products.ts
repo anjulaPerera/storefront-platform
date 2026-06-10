@@ -182,8 +182,7 @@ const products: ProductSeed[] = [
       network: "5G",
       color: "Navigator Beige",
     },
-    thumbnail:
-      "https://placehold.co/400x400/1a1a2e/ffffff?text=Realme+13+Pro%2B",
+    thumbnail: "https://fdn2.gsmarena.com/vv/bigpic/realme-11-4g-.jpg",
     external_link: "https://www.gsmarena.com/realme_13_pro+-12701.php",
     is_featured: false,
     meta_title: "Realme 13 Pro+ 5G Price in Sri Lanka | RangaPhones",

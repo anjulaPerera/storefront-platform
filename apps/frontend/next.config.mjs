@@ -7,6 +7,8 @@ const nextConfig = {
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "placehold.co" },
     ],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
   },
 
   async rewrites() {
@@ -14,7 +16,6 @@ const nextConfig = {
       ? [
           {
             source: "/api/backend/:path*",
-            // ✅ Fallback to explicit localhost string if the env variable is undefined
             destination: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/:path*`,
           },
         ]

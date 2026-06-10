@@ -33,7 +33,7 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
     } else {
       params.delete(key);
     }
-    params.delete("page"); // Reset to page 1 on filter change
+    params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -49,21 +49,35 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
       {hasFilters && (
         <button
           onClick={clearAll}
-          className="text-sm text-primary hover:underline"
+          className="text-xs text-accent hover:text-accent/80 transition-colors font-semibold uppercase tracking-widest flex items-center gap-1.5"
         >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
           Clear all filters
         </button>
       )}
 
       {/* Sort */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Sort By</h3>
+        <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
+          Sort By
+        </h3>
         <select
-          id="sort-select"
           value={currentSort}
           onChange={(e) => updateFilter("sort", e.target.value)}
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-surface"
           aria-label="Sort products"
+          className="w-full input-dark text-sm cursor-pointer"
         >
           <option value="newest">Newest First</option>
           <option value="price_asc">Price: Low to High</option>
@@ -75,17 +89,17 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
       {/* Categories */}
       {categories.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">
+          <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
             Category
           </h3>
-          <ul className="space-y-1">
+          <ul className="space-y-0.5">
             <li>
               <button
                 onClick={() => updateFilter("categorySlug", "")}
-                className={`text-sm w-full text-left px-2 py-1 rounded transition-colors ${
+                className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
                   !currentCategory
-                    ? "text-primary font-medium"
-                    : "text-muted hover:text-foreground"
+                    ? "text-white bg-primary/20 font-semibold"
+                    : "text-white/50 hover:text-white hover:bg-white/5"
                 }`}
               >
                 All Categories
@@ -95,10 +109,10 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
               <li key={cat.id}>
                 <button
                   onClick={() => updateFilter("categorySlug", cat.slug)}
-                  className={`text-sm w-full text-left px-2 py-1 rounded transition-colors ${
+                  className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
                     currentCategory === cat.slug
-                      ? "text-primary font-medium"
-                      : "text-muted hover:text-foreground"
+                      ? "text-white bg-primary/20 font-semibold"
+                      : "text-white/50 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   {cat.name}
@@ -112,28 +126,34 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
       {/* Brands */}
       {brands.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">Brand</h3>
-          <div className="space-y-2">
+          <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
+            Brand
+          </h3>
+          <div className="space-y-1.5">
             {brands.map((brand) => {
               const id = `brand-${brand}`;
+              const checked = currentBrand === brand;
               return (
-                <div key={brand} className="flex items-center gap-2">
+                <label
+                  key={brand}
+                  htmlFor={id}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                    checked ? "bg-primary/15" : "hover:bg-white/5"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     id={id}
-                    checked={currentBrand === brand}
-                    onChange={() =>
-                      updateFilter("brand", currentBrand === brand ? "" : brand)
-                    }
-                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                    checked={checked}
+                    onChange={() => updateFilter("brand", checked ? "" : brand)}
+                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-primary accent-primary cursor-pointer"
                   />
-                  <label
-                    htmlFor={id}
-                    className="text-sm text-foreground cursor-pointer"
+                  <span
+                    className={`text-sm transition-colors ${checked ? "text-white font-medium" : "text-white/60"}`}
                   >
                     {brand}
-                  </label>
-                </div>
+                  </span>
+                </label>
               );
             })}
           </div>
@@ -142,30 +162,28 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
 
       {/* Price range */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">
+        <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
           Price ({tenantConfig.identity.currencySymbol})
         </h3>
         <div className="flex items-center gap-2">
           <input
             type="number"
-            id="min-price"
             placeholder="Min"
             value={currentMinPrice}
             onChange={(e) => updateFilter("minPrice", e.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             min={0}
             aria-label="Minimum price"
+            className="input-dark text-sm w-full"
           />
-          <span className="text-muted text-sm">–</span>
+          <span className="text-white/30 text-sm flex-shrink-0">–</span>
           <input
             type="number"
-            id="max-price"
             placeholder="Max"
             value={currentMaxPrice}
             onChange={(e) => updateFilter("maxPrice", e.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             min={0}
             aria-label="Maximum price"
+            className="input-dark text-sm w-full"
           />
         </div>
       </div>

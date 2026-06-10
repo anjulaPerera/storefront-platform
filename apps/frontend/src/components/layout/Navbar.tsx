@@ -28,7 +28,7 @@ export function Navbar() {
     closeMobileMenu();
   }, [pathname]);
 
-  const isHome = pathname === "/";
+  // const isHome = pathname === "/";
 
   return (
     <>
@@ -40,7 +40,7 @@ export function Navbar() {
       >
         <div className="container-wide">
           <nav
-            className={`flex items-center justify-between transition-all duration-500 ${
+            className={`flex items-center justify-between transition-all duration-500 border border-transparent ${
               scrolled
                 ? "glass-2 rounded-full px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
                 : "px-0"
@@ -54,10 +54,10 @@ export function Navbar() {
             >
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center transition-all duration-300 group-hover:shadow-glow-sm">
                 <span className="font-display font-bold text-white text-sm">
-                  R
+                  RP
                 </span>
               </div>
-              <span className="font-display font-bold text-lg text-foreground tracking-tight">
+              <span className="font-display font-bold text-lg tracking-tight">
                 {identity.shopName}
               </span>
             </Link>

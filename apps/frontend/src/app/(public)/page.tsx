@@ -84,7 +84,7 @@ const CATEGORY_META: Record<
 
 export default async function HomePage() {
   const { featured, categories } = await getData();
-  const { pages, identity, ai } = tenantConfig;
+  const { pages, ai } = tenantConfig;
 
   return (
     <div className="overflow-x-hidden">
@@ -283,7 +283,7 @@ export default async function HomePage() {
           {[...BRANDS, ...BRANDS].map((brand, i) => (
             <span
               key={i}
-              className="font-display font-bold text-base uppercase tracking-[0.15em] text-white/20 hover:text-white/60 transition-colors duration-300 cursor-default flex-shrink-0"
+              className="font-display font-bold text-base uppercase tracking-[0.15em] text-white/70 hover:text-white/60 transition-colors duration-300 cursor-default flex-shrink-0"
             >
               {brand}
             </span>

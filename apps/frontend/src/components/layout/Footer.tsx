@@ -15,9 +15,9 @@ const SOCIAL_PATHS: Record<string, string> = {
 
 export function Footer() {
   return (
-    <footer className="relative mt-24 border-t border-border overflow-hidden">
-      {/* Ambient glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+    <footer className="relative mt-24 overflow-hidden pt-8">
+      {/* Separator — full-width gradient glow, no hard border */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
       <div className="container-wide py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">

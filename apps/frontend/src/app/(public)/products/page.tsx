@@ -39,6 +39,7 @@ interface Meta {
   total: number;
   totalPages: number;
 }
+
 interface Category {
   id: string;
   name: string;
@@ -55,18 +56,28 @@ async function getData(params: SearchParams) {
   const [productsRes, catsRes] = await Promise.allSettled([
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/products?${query}`, {
       cache: "no-store",
-    }).then((r) => r.json()) as Promise<{ data: Product[]; meta: Meta }>,
+    }).then((r) => {
+      if (!r.ok) throw new Error("Failed to fetch products");
+      return r.json();
+    }) as Promise<{ data: Product[]; meta: Meta }>,
     apiFetch<Category[]>("/categories", { next: { revalidate: 600 } }),
   ]);
 
+  // Safer fallback check ensuring .data actually exists
   const products =
-    productsRes.status === "fulfilled" ? productsRes.value.data : [];
+    productsRes.status === "fulfilled" && productsRes.value?.data
+      ? productsRes.value.data
+      : [];
+
   const meta =
-    productsRes.status === "fulfilled" ? productsRes.value.meta : null;
+    productsRes.status === "fulfilled" && productsRes.value?.meta
+      ? productsRes.value.meta
+      : null;
+
   const categories = catsRes.status === "fulfilled" ? catsRes.value : [];
 
   const brandSet = new Set(
-    products.filter((p) => p.brand).map((p) => p.brand as string),
+    products.filter((p) => p?.brand).map((p) => p.brand as string),
   );
 
   return { products, meta, categories, brands: Array.from(brandSet).sort() };
@@ -88,14 +99,9 @@ export default async function ProductsPage({
 
   return (
     <div className="min-h-screen flex flex-col pt-24">
-      {/* Ambient top glow */}
+      {/* Ambient top glow - Replaced inline CSS with Tailwind background radial setup */}
       <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at top, rgba(37,99,235,0.08) 0%, transparent 60%)",
-          zIndex: 0,
-        }}
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_rgba(37,99,235,0.08)_0%,_transparent_60%)]"
         aria-hidden="true"
       />
 

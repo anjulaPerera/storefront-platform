@@ -8,19 +8,19 @@ import { apiFetch } from "@/lib/api";
 export function ProfileForm() {
   const router = useRouter();
   const { user, accessToken, setAuth } = useAuthStore();
-
-  // ✅ Initialize state directly from store data if present to prevent cascading re-renders
-  const [firstName, setFirstName] = useState(user?.firstName ?? "");
-  const [lastName, setLastName] = useState(user?.lastName ?? "");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ Keep useEffect dedicated strictly to navigation guard logic
   useEffect(() => {
     if (!user) {
       router.push("/login");
+      return;
     }
+    setFirstName(user.firstName);
+    setLastName(user.lastName);
   }, [user, router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -49,13 +49,13 @@ export function ProfileForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-surface rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6"
+      className="glass rounded-2xl border border-border-mid p-8 space-y-6"
     >
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label
             htmlFor="prof-first"
-            className="block text-sm font-medium text-foreground mb-1"
+            className="block text-sm font-semibold text-white/60 mb-2"
           >
             First Name
           </label>
@@ -64,13 +64,13 @@ export function ProfileForm() {
             type="text"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="input-dark"
           />
         </div>
         <div>
           <label
             htmlFor="prof-last"
-            className="block text-sm font-medium text-foreground mb-1"
+            className="block text-sm font-semibold text-white/60 mb-2"
           >
             Last Name
           </label>
@@ -79,7 +79,7 @@ export function ProfileForm() {
             type="text"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="input-dark"
           />
         </div>
       </div>
@@ -87,7 +87,7 @@ export function ProfileForm() {
       <div>
         <label
           htmlFor="prof-email"
-          className="block text-sm font-medium text-foreground mb-1"
+          className="block text-sm font-semibold text-white/60 mb-2"
         >
           Email
         </label>
@@ -96,35 +96,50 @@ export function ProfileForm() {
           type="email"
           value={user.email}
           disabled
-          className="w-full border border-gray-100 rounded-lg px-4 py-2.5 text-sm bg-gray-50 text-muted cursor-not-allowed"
+          className="input-dark opacity-40 cursor-not-allowed"
         />
-        <p className="text-xs text-muted mt-1">
+        <p className="text-xs text-white/30 mt-1.5">
           Email address cannot be changed here.
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted">Role:</span>
-        <span className="text-sm font-medium capitalize text-foreground">
+      <div className="flex items-center gap-2 py-2 px-3 glass rounded-lg border border-border">
+        <span className="text-xs text-white/40 uppercase tracking-widest">
+          Role
+        </span>
+        <span className="text-xs font-semibold text-white/70 capitalize">
           {user.role.replace("_", " ")}
         </span>
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-          {error}
-        </p>
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
+          <p className="text-sm text-red-400">{error}</p>
+        </div>
       )}
       {saved && (
-        <p className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
-          Profile saved successfully.
-        </p>
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20">
+          <svg
+            className="w-4 h-4 text-green-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          <p className="text-sm text-green-400">Profile saved successfully.</p>
+        </div>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="px-8 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark disabled:opacity-60 transition-colors"
+        className="btn-primary px-8 py-3"
       >
         {loading ? "Saving…" : "Save Changes"}
       </button>
