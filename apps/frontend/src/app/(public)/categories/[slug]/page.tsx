@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { FadeIn } from "@/components/motion/FadeIn";
+import { error } from "console";
 
 interface Category {
   id: string;
@@ -56,6 +57,7 @@ export default async function CategoryPage({
     ).then((r) => r.json())) as { data: Product[] };
     products = res.data;
   } catch {
+     console.error("CategoryPage error:", error);
     notFound();
   }
 
