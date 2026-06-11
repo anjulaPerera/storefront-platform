@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { apiFetch } from "@/lib/api";
+import Link from "next/link";
 
 export function ProfileForm() {
   const router = useRouter();
@@ -83,7 +84,6 @@ export function ProfileForm() {
           />
         </div>
       </div>
-
       <div>
         <label
           htmlFor="prof-email"
@@ -102,9 +102,30 @@ export function ProfileForm() {
           Email address cannot be changed here.
         </p>
       </div>
-
-
-
+      {user.role !== "customer" && (
+        <span className="text-xs text-muted capitalize">{user.role}</span>
+      )}
+      <Link
+        href="/wishlist"
+        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors group"
+      >
+        <svg
+          className="w-5 h-5 text-muted group-hover:text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+          />
+        </svg>
+        <span className="text-sm font-medium text-muted group-hover:text-white">
+          My Wishlist
+        </span>
+      </Link>
       {error && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
           <p className="text-sm text-red-400">{error}</p>
@@ -128,7 +149,6 @@ export function ProfileForm() {
           <p className="text-sm text-green-400">Profile saved successfully.</p>
         </div>
       )}
-
       <button
         type="submit"
         disabled={loading}

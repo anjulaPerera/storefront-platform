@@ -4,7 +4,6 @@ import { apiFetch } from "@/lib/api";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { FadeIn } from "@/components/motion/FadeIn";
-import { error } from "console";
 
 interface Category {
   id: string;
@@ -41,25 +40,45 @@ export async function generateMetadata({
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams: { brand?: string; sort?: string };
 }) {
+  // ── 1. Category is critical — 404 if missing ──────────────────────────
   let category: Category;
-  let products: Product[] = [];
-
   try {
     category = await apiFetch<Category>(`/categories/${params.slug}`, {
       next: { revalidate: 300 },
     });
-    const res = (await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/products?categorySlug=${params.slug}&limit=24`,
-      { next: { revalidate: 300 } },
-    ).then((r) => r.json())) as { data: Product[] };
-    products = res.data;
   } catch {
-     console.error("CategoryPage error:", error);
     notFound();
   }
+
+  // ── 2. Products list is non-critical — degrade to empty grid ──────────
+  let products: Product[] = [];
+  try {
+    const qs = new URLSearchParams({
+      categorySlug: params.slug,
+      limit: "24",
+    });
+    if (searchParams.brand) qs.set("brand", searchParams.brand);
+    if (searchParams.sort) qs.set("sort", searchParams.sort);
+
+    const res = (await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/products?${qs.toString()}`,
+      { next: { revalidate: 300 } },
+    ).then((r) => r.json())) as { data: Product[] };
+
+    products = res.data ?? [];
+  } catch (err) {
+    console.error(
+      "[SSR] products fetch failed for category:",
+      params.slug,
+      err,
+    );
+  }
+
 
   // Hero gradient per category
   const heroColors: Record<string, string> = {
