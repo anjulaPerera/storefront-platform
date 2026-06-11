@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Syne, Manrope } from "next/font/google";
 import { tenantConfig } from "@storefront/config";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { Navbar } from "@/components/layout/Navbar";
@@ -8,7 +8,19 @@ import { TopStrip } from "@/components/layout/TopStrip";
 import { ChatWidget } from "@/components/ai/ChatWidget";
 import "@/app/globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const syne = Syne({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -29,17 +41,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body
-        className={inter.className}
-        style={{ fontFamily: tenantConfig.theme.fontFamily }}
-      >
+    <html
+      lang="en"
+      className={`${syne.variable} ${manrope.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="noise-overlay">
         <AppProviders>
           <TopStrip />
           <Navbar />
-          <main className="min-h-screen">{children}</main>
-          <ChatWidget />
+          <main>{children}</main>
           <Footer />
+          <ChatWidget />
         </AppProviders>
       </body>
     </html>

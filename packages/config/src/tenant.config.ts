@@ -5,8 +5,18 @@ export type BusinessType =
   | "ELECTRONICS"
   | "CUSTOM";
 
+export type ExperienceStyle =
+  | "minimal"
+  | "modern"
+  | "cinematic"
+  | "luxury"
+  | "tech";
+export type ThemeMode = "light" | "dark";
+export type MotionLevel = "none" | "subtle" | "medium" | "immersive";
+
 export interface TenantConfig {
   businessType: BusinessType;
+  experience: ExperienceConfig;
   identity: IdentityConfig;
   theme: ThemeConfig;
   navigation: NavigationConfig;
@@ -18,6 +28,12 @@ export interface TenantConfig {
   social: SocialConfig;
   seo: SEOConfig;
   externalLinks: ExternalLinksConfig;
+}
+
+interface ExperienceConfig {
+  style: ExperienceStyle;
+  mode: ThemeMode;
+  motionLevel: MotionLevel;
 }
 
 interface IdentityConfig {
@@ -56,10 +72,7 @@ interface NavLink {
 
 interface NavigationConfig {
   topLinks: NavLink[];
-  footerColumns: {
-    heading: string;
-    links: NavLink[];
-  }[];
+  footerColumns: { heading: string; links: NavLink[] }[];
 }
 
 interface FeatureFlags {
@@ -102,14 +115,8 @@ interface PagesConfig {
     latestSectionTitle: string;
     categorySectionTitle: string;
   };
-  about: {
-    title: string;
-    body: string;
-  };
-  contact: {
-    title: string;
-    subtitle: string;
-  };
+  about: { title: string; body: string };
+  contact: { title: string; subtitle: string };
 }
 
 interface AIConfig {
@@ -127,7 +134,6 @@ interface EmailConfig {
   replyTo: string;
   footerText: string;
 }
-
 interface SocialConfig {
   facebook?: string;
   instagram?: string;
@@ -136,35 +142,33 @@ interface SocialConfig {
   tiktok?: string;
   twitter?: string;
 }
-
 interface SEOConfig {
   titlePattern: string;
   defaultDescription: string;
   ogImagePath: string;
   canonicalBaseUrl: string;
 }
-
 interface ExternalLinksConfig {
-  [categoryKey: string]:
-    | {
-        label: string;
-        urlPattern: string;
-      }
-    | undefined;
+  [categoryKey: string]: { label: string; urlPattern: string } | undefined;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  MOBILE SHOP TENANT — RangaPhones
-//  To build a different shop: change everything below this line.
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  TENANT — RangaPhones  (Cinematic Dark)
+// ═══════════════════════════════════════════════════════
 
 export const tenantConfig: TenantConfig = {
   businessType: "MOBILE_SHOP",
 
+  experience: {
+    style: "cinematic",
+    mode: "dark",
+    motionLevel: "medium",
+  },
+
   identity: {
     shopName: "RangaPhones",
-    tagline: "Your trusted mobile partner",
-    logoPath: "/man.jpg",
+    tagline: "The future in your hands",
+    logoPath: "/logo.svg",
     faviconPath: "/favicon.ico",
     phone: "+94 77 123 4567",
     email: "hello@rangaphones.lk",
@@ -177,16 +181,16 @@ export const tenantConfig: TenantConfig = {
   },
 
   theme: {
-    primaryColor: "#1D4ED8",
-    primaryColorDark: "#1E3A8A",
-    secondaryColor: "#0EA5E9",
+    primaryColor: "#2563EB",
+    primaryColorDark: "#1D4ED8",
+    secondaryColor: "#7C3AED",
     accentColor: "#F59E0B",
-    backgroundColor: "#F8FAFC",
-    surfaceColor: "#FFFFFF",
-    textColor: "#1E293B",
+    backgroundColor: "#050816",
+    surfaceColor: "#0D111F",
+    textColor: "#F1F5F9",
     mutedTextColor: "#64748B",
-    fontFamily: "'Inter', sans-serif",
-    borderRadius: "md",
+    fontFamily: "'Syne', 'Manrope', sans-serif",
+    borderRadius: "lg",
   },
 
   navigation: {
@@ -196,9 +200,19 @@ export const tenantConfig: TenantConfig = {
         label: "Smartphones",
         href: "/categories/smartphones",
         children: [
-          { label: "Samsung", href: "/categories/smartphones?brand=Samsung" },
-          { label: "Apple", href: "/categories/smartphones?brand=Apple" },
-          { label: "Xiaomi", href: "/categories/smartphones?brand=Xiaomi" },
+          {
+            label: "Samsung",
+            href: "/products?categorySlug=smartphones&brand=Samsung",
+          },
+          {
+            label: "Apple",
+            href: "/products?categorySlug=smartphones&brand=Apple",
+          },
+          {
+            label: "Xiaomi",
+            href: "/products?categorySlug=smartphones&brand=Xiaomi",
+          },
+          { label: "All Phones", href: "/categories/smartphones" },
         ],
       },
       { label: "Tablets", href: "/categories/tablets" },
@@ -214,6 +228,7 @@ export const tenantConfig: TenantConfig = {
           { label: "Tablets", href: "/categories/tablets" },
           { label: "Accessories", href: "/categories/accessories" },
           { label: "New Arrivals", href: "/products?sort=newest" },
+          { label: "On Sale", href: "/products?inStock=true" },
         ],
       },
       {
@@ -296,7 +311,7 @@ export const tenantConfig: TenantConfig = {
           },
           {
             key: "os",
-            label: "Operating System",
+            label: "OS",
             type: "select",
             filterable: true,
             options: ["Android", "iOS"],
@@ -347,7 +362,7 @@ export const tenantConfig: TenantConfig = {
           },
           {
             key: "os",
-            label: "Operating System",
+            label: "OS",
             type: "select",
             filterable: true,
             options: ["Android", "iPadOS", "Windows"],
@@ -409,23 +424,21 @@ export const tenantConfig: TenantConfig = {
     homepage: {
       heroTitle: "Find Your Perfect Phone",
       heroSubtitle:
-        "Sri Lanka's trusted source for smartphones, tablets & accessories — all at the best prices.",
-      heroCTAText: "Shop Smartphones",
-      heroCTALink: "/categories/smartphones",
+        "Sri Lanka's most trusted source for smartphones, tablets & accessories — at prices that make sense.",
+      heroCTAText: "Explore Collection",
+      heroCTALink: "/products",
       featuredSectionTitle: "Featured Phones",
       latestSectionTitle: "New Arrivals",
-      categorySectionTitle: "Browse by Category",
+      categorySectionTitle: "Shop by Category",
     },
     about: {
       title: "About RangaPhones",
-      body: `RangaPhones has been Sri Lanka's trusted mobile retailer since 2018. 
-We carry the latest smartphones, tablets, and accessories from all major brands. 
-Our team of experts is always ready to help you find the perfect device for your needs and budget.`,
+      body: `RangaPhones has been Sri Lanka's trusted mobile retailer since 2018. We carry the latest smartphones, tablets, and accessories from all major brands with guaranteed authenticity and official warranty.`,
     },
     contact: {
       title: "Get in Touch",
       subtitle:
-        "Have a question about a product? Want to know if we have a specific model in stock? We'd love to hear from you.",
+        "Have a question about a product? Want to check stock? We're here for you.",
     },
   },
 
@@ -433,13 +446,13 @@ Our team of experts is always ready to help you find the perfect device for your
     enabled: true,
     assistantName: "Ranga",
     persona:
-      "You are Ranga, a friendly and knowledgeable mobile phone expert assistant for RangaPhones. You help customers find the right phone, compare specs, and understand the products we sell.",
+      "You are Ranga, a friendly and knowledgeable mobile phone expert for RangaPhones. You help customers find the right phone, compare specs, and understand our products.",
     greetingMessage:
       "Hi! I'm Ranga 👋 I'm here to help you find the perfect phone. What are you looking for today?",
     topicScope:
-      "mobile phones, smartphones, tablets, phone accessories, phone specifications, comparisons between phones we sell",
+      "mobile phones, smartphones, tablets, phone accessories, phone specifications, comparisons",
     outOfScopeReply:
-      "I'm only able to help with questions about mobile phones and our products at RangaPhones. Is there a phone or accessory I can help you with?",
+      "I can only help with questions about mobile phones and our products at RangaPhones. Is there a phone I can help you with?",
     model: "gemini-2.5-flash",
   },
 
@@ -459,7 +472,7 @@ Our team of experts is always ready to help you find the perfect device for your
   seo: {
     titlePattern: "%s | RangaPhones",
     defaultDescription:
-      "Buy the latest smartphones, tablets & accessories in Sri Lanka at the best prices. Visit RangaPhones — your trusted mobile partner.",
+      "Buy the latest smartphones, tablets & accessories in Sri Lanka at the best prices. RangaPhones — Sri Lanka's most trusted mobile retailer.",
     ogImagePath: "/og-image.jpg",
     canonicalBaseUrl: "https://www.rangaphones.lk",
   },
@@ -467,11 +480,6 @@ Our team of experts is always ready to help you find the perfect device for your
   externalLinks: {
     smartphones: {
       label: "View Full Specs on GSM Arena",
-      urlPattern:
-        "https://www.gsmarena.com/search.php3?sQuickSearch=true&fDisplayInchesMin=&fDisplayInchesMax=&sOSes%5B%5D=&sMakers%5B%5D=&sAvailabilities%5B%5D=1&sQuickSearch=true&chk5G=selected&Q={productName}",
-    },
-    tablets: {
-      label: "View Specs",
       urlPattern:
         "https://www.gsmarena.com/search.php3?sQuickSearch=true&Q={productName}",
     },

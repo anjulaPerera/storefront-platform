@@ -4,24 +4,24 @@ import { ContactForm } from "@/components/layout/ContactForm";
 export default function ContactPage() {
   const { pages, identity } = tenantConfig;
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-3xl font-bold text-foreground mb-2">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
+      <h1 className="text-3xl font-bold text-white/80 mb-2">
         {pages.contact.title}
       </h1>
       <p className="text-muted mb-10">{pages.contact.subtitle}</p>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         <ContactForm />
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">
+          <h2 className="text-lg font-semibold text-white/80 mb-4">
             Find us
           </h2>
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="font-medium text-foreground">Address</dt>
+              <dt className="font-medium text-white/80">Address</dt>
               <dd className="text-muted mt-0.5">{identity.address}</dd>
             </div>
             <div>
-              <dt className="font-medium text-foreground">Phone</dt>
+              <dt className="font-medium text-white/80">Phone</dt>
               <dd className="mt-0.5">
                 <a
                   href={`tel:${identity.phone}`}
@@ -32,7 +32,7 @@ export default function ContactPage() {
               </dd>
             </div>
             <div>
-              <dt className="font-medium text-foreground">Email</dt>
+              <dt className="font-medium text-white/80">Email</dt>
               <dd className="mt-0.5">
                 <a
                   href={`mailto:${identity.email}`}
@@ -43,7 +43,7 @@ export default function ContactPage() {
               </dd>
             </div>
             <div>
-              <dt className="font-medium text-foreground">Hours</dt>
+              <dt className="font-medium text-white/80">Hours</dt>
               <dd className="text-muted mt-0.5">{identity.businessHours}</dd>
             </div>
           </dl>

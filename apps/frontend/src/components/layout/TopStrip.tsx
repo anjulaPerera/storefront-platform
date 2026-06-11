@@ -1,18 +1,15 @@
-import { tenantConfig } from '@storefront/config';
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from "@/lib/api";
 
 interface Banner {
-  id:               string;
-  content:          string;
-  linkUrl:          string | null;
-  linkText:         string | null;
-  backgroundColour: string | null;
-  textColour:       string | null;
+  id: string;
+  content: string;
+  linkUrl: string | null;
+  linkText: string | null;
 }
 
-async function getTopStripBanners(): Promise<Banner[]> {
+async function getBanners(): Promise<Banner[]> {
   try {
-    return await apiFetch<Banner[]>('/banners?type=top_strip', {
+    return await apiFetch<Banner[]>("/banners?type=top_strip", {
       next: { revalidate: 60 },
     });
   } catch {
@@ -21,27 +18,30 @@ async function getTopStripBanners(): Promise<Banner[]> {
 }
 
 export async function TopStrip() {
-  const banners = await getTopStripBanners();
+  const banners = await getBanners();
   if (banners.length === 0) return null;
-
-  // Show the first active banner — cycling is a client enhancement (future)
   const banner = banners[0];
 
   return (
     <div
-      className="w-full py-2 px-4 text-center text-sm font-medium"
+      className="relative z-50 w-full py-2 px-4 text-center text-xs font-semibold tracking-wide"
       style={{
-        backgroundColor: banner.backgroundColour ?? tenantConfig.theme.primaryColor,
-        color:           banner.textColour        ?? '#ffffff',
+        background: "linear-gradient(90deg, #1D4ED8, #7C3AED, #1D4ED8)",
+        backgroundSize: "200% 100%",
+        animation: "shimmer 4s linear infinite",
       }}
     >
-      <span dangerouslySetInnerHTML={{ __html: banner.content }} />
+      <style>{`@keyframes shimmer { 0%{background-position:0%} 100%{background-position:200%} }`}</style>
+      <span
+        className="text-white/90"
+        dangerouslySetInnerHTML={{ __html: banner.content }}
+      />
       {banner.linkUrl && (
-        
-       <a   href={banner.linkUrl}
-          className="ml-3 underline underline-offset-2 hover:no-underline"
+        <a
+          href={banner.linkUrl}
+          className="ml-2 text-white font-bold underline underline-offset-2 hover:no-underline"
         >
-          {banner.linkText ?? 'Learn more'}
+          {banner.linkText ?? "Learn more"} →
         </a>
       )}
     </div>
