@@ -29,7 +29,7 @@ export function Footer() {
                   R
                 </span>
               </div>
-              <span className="font-display font-bold text-xl text-foreground">
+              <span className="font-display font-bold text-xl text-white/80">
                 {identity.shopName}
               </span>
             </div>

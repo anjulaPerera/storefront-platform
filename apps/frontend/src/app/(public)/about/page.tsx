@@ -3,26 +3,26 @@ import { tenantConfig } from "@storefront/config";
 export default function AboutPage() {
   const { pages, identity } = tenantConfig;
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-3xl font-bold text-foreground mb-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-0">
+      <h1 className="text-3xl font-bold text-white mb-6">
         {pages.about.title}
       </h1>
-      <div className="prose prose-gray max-w-none text-muted leading-relaxed whitespace-pre-line">
+      <div className="prose prose-gray max-w-none text-white/50 leading-relaxed whitespace-pre-line">
         {pages.about.body}
       </div>
       <div className="mt-10 p-6 glass rounded-2xl border border-border-mid">
-        <h2 className="font-display font-semibold text-foreground mb-4">
+        <h2 className="font-display font-semibold mb-4 text-white/80">
           Contact Information
         </h2>
         <dl className="space-y-3 text-sm">
           <div className="flex gap-2">
-            <dt className="font-semibold text-muted w-16 flex-shrink-0">
+            <dt className="font-semibold w-16 flex-shrink-0">
               Address
             </dt>
-            <dd className="text-foreground">{identity.address}</dd>
+            <dd className="text-white/80">{identity.address}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="font-semibold text-muted w-16 flex-shrink-0">
+            <dt className="font-semibold  w-16 flex-shrink-0">
               Phone
             </dt>
             <dd>
@@ -35,23 +35,23 @@ export default function AboutPage() {
             </dd>
           </div>
           <div className="flex gap-2">
-            <dt className="font-semibold text-muted w-16 flex-shrink-0">
+            <dt className="font-semibold w-16 flex-shrink-0">
               Email
             </dt>
             <dd>
               <a
                 href={`mailto:${identity.email}`}
-                className="text-primary hover:text-primary/80 transition-colors"
+                className="text-primary hover:text-primary/50 transition-colors"
               >
                 {identity.email}
               </a>
             </dd>
           </div>
           <div className="flex gap-2">
-            <dt className="font-semibold text-muted w-16 flex-shrink-0">
+            <dt className="font-semibold w-16 flex-shrink-0">
               Hours
             </dt>
-            <dd className="text-foreground">{identity.businessHours}</dd>
+            <dd className="text-white/80">{identity.businessHours}</dd>
           </div>
         </dl>
         {identity.mapLink && (
