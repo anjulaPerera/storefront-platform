@@ -26,6 +26,9 @@ interface AuthState {
   hydrate: () => Promise<void>;
 }
 
+// Held outside Zustand state — purely internal, never needs to trigger re-renders
+let _hydrateInFlight = false;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
@@ -60,8 +63,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   hydrate: async () => {
-    if (get().isHydrated) return;
-    set({ isLoading: true }); // ← keep isLoading true during refresh
+    // Bail if already done OR if a call is already in-flight
+    if (get().isHydrated || _hydrateInFlight) return;
+    _hydrateInFlight = true;
+    set({ isLoading: true });
 
     try {
       const data = (await api.auth.refresh()) as { accessToken: string };
@@ -70,10 +75,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: user.user,
         accessToken: data.accessToken,
         isLoading: false,
-        isHydrated: true
-     });
+        isHydrated: true,
+      });
     } catch (err) {
-      // 401 = no active session (expected). Anything else = config problem.
+      // 401 = no active session (expected on first visit / after logout)
       if (process.env.NODE_ENV !== "production") {
         console.warn("[auth] hydrate failed:", err);
       }
@@ -83,6 +88,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         isHydrated: true,
       });
+    } finally {
+      _hydrateInFlight = false;
     }
   },
 }));
