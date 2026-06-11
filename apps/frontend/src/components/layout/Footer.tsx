@@ -87,7 +87,7 @@ export function Footer() {
           {/* Footer columns from SSOT */}
           {navigation.footerColumns.map((col) => (
             <div key={col.heading}>
-              <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-widest mb-5">
+              <h3 className="font-display font-semibold text-sm text-white/70 uppercase tracking-widest mb-5">
                 {col.heading}
               </h3>
               <ul className="space-y-3">
