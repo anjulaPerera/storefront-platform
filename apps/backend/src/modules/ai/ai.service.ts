@@ -11,6 +11,16 @@ import { tenantConfig } from "@storefront/config";
 
 let genAI: GoogleGenerativeAI | null = null;
 
+// ===== CHANGE: Fallback model chain =====
+const FALLBACK_MODELS = [
+  tenantConfig.ai.model ?? "gemini-2.5-flash", // primary
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+].filter(
+  (value, index, self) => self.indexOf(value) === index,
+);
+// ===== END CHANGE =====
+
 function getClient(): GoogleGenerativeAI {
   if (!genAI) {
     const key = process.env.GEMINI_API_KEY;
@@ -81,6 +91,96 @@ STRICT RULES:
 7. Always respond in the same language the customer uses${productContext}`;
 }
 
+// ===== CHANGE: Gemini fallback helper =====
+
+function isRetryableGeminiError(err: unknown): boolean {
+  const message =
+    err instanceof Error ? err.message : String(err);
+
+  return (
+    message.includes("503") ||
+    message.includes("high demand") ||
+    message.includes("429") ||
+    message.includes("RESOURCE_EXHAUSTED") ||
+    message.includes("Service Unavailable")
+  );
+}
+
+async function generateWithFallback(
+  message: string,
+  history: Content[],
+  systemInstruction: string,
+): Promise<{
+  reply: string;
+  model: string;
+}> {
+  let lastError: unknown;
+
+  for (const modelName of FALLBACK_MODELS) {
+    try {
+      console.log(`[AI] Trying Gemini model: ${modelName}`);
+
+      const model = getClient().getGenerativeModel({
+        model: modelName,
+        systemInstruction,
+        safetySettings: [
+          {
+            category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold:
+              HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold:
+              HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category:
+              HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold:
+              HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+          {
+            category:
+              HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold:
+              HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+        ],
+      });
+
+      const chatSession = model.startChat({
+        history,
+      });
+
+      const result =
+        await chatSession.sendMessage(message);
+
+      return {
+        reply: result.response.text(),
+        model: modelName,
+      };
+    } catch (err) {
+      lastError = err;
+
+      console.error(
+        `[AI] ${modelName} failed:`,
+        err,
+      );
+
+      if (!isRetryableGeminiError(err)) {
+        throw err;
+      }
+
+      console.warn(
+        `[AI] Falling back from ${modelName}...`,
+      );
+    }
+  }
+
+  throw lastError;
+}
+
 // ─── Conversation persistence ─────────────────────────────────────────────────
 
 async function saveMessages(
@@ -107,38 +207,54 @@ export async function chat(
   const productContext = await fetchProductContext(message);
   const systemInstruction = buildSystemPrompt(productContext);
 
-  const model = getClient().getGenerativeModel({
-    model: tenantConfig.ai.model ?? "gemini-2.5-flash",
-    systemInstruction,
-    safetySettings: [
-      {
-        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-      },
-    ],
-  });
+  // const model = getClient().getGenerativeModel({
+  //   model: tenantConfig.ai.model ?? "gemini-2.5-flash",
+  //   systemInstruction,
+  //   safetySettings: [
+  //     {
+  //       category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+  //       threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  //     },
+  //     {
+  //       category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+  //       threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  //     },
+  //     {
+  //       category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+  //       threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  //     },
+  //     {
+  //       category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+  //       threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  //     },
+  //   ],
+  // });
 
   // Convert history to Gemini format (assistant → model)
-  const geminiHistory: Content[] = history.slice(-10).map((msg) => ({
-    role: msg.role === "assistant" ? "model" : "user",
-    parts: [{ text: msg.content }],
-  }));
+  const geminiHistory: Content[] = history
+    .slice(-10)
+    .map((msg) => ({
+      role: msg.role === "assistant" ? "model" : "user",
+      parts: [{ text: msg.content }],
+    }))
+    .reduce<Content[]>((acc, turn) => {
+      if (acc.length === 0 && turn.role === "model") return acc;
+      return [...acc, turn];
+    }, []);
 
-  const chatSession = model.startChat({ history: geminiHistory });
-  const result = await chatSession.sendMessage(message);
-  const reply = result.response.text();
+  // const chatSession = model.startChat({ history: geminiHistory });
+  // const result = await chatSession.sendMessage(message);
+  // const reply = result.response.text();
+
+
+  const { reply, model } = await generateWithFallback(
+    message,
+    geminiHistory,
+    systemInstruction,
+  );
+
+  console.log(`[AI] Reply generated using ${model}`);
+
 
   // Save both turns (non-blocking)
   saveMessages(sessionId, message, reply, userId).catch(console.error);

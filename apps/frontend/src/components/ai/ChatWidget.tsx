@@ -1,6 +1,5 @@
 "use client";
-
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { api, ApiError } from "@/lib/api";
 
@@ -53,6 +52,34 @@ export function ChatWidget() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
+const toggleChat = useCallback(() => {
+  setOpen((prev) => {
+    const next = !prev;
+
+    if (next && !greetingShown.current) {
+      greetingShown.current = true;
+      setMessages([
+        {
+          role: "assistant",
+          content: ai.greetingMessage,
+        },
+      ]);
+    }
+
+    return next;
+  });
+}, [ai.greetingMessage]);
+
+  useEffect(() => {
+    function handleOpenChat() {
+      if (!open) {
+        toggleChat();
+      }
+    }
+    window.addEventListener("open-ai-chat", handleOpenChat);
+    return () => window.removeEventListener("open-ai-chat", handleOpenChat);
+  }, [open, toggleChat]);
+
   async function sendMessage() {
     const text = input.trim();
     if (!text || typing) return;
@@ -61,6 +88,7 @@ export function ChatWidget() {
     const history = messages
       .filter((m) => !m.isError)
       .slice(-10)
+      .filter((m) => !(m.role === "assistant" && m === messages[0]))
       .map((m) => ({ role: m.role, content: m.content }));
 
     setMessages((prev) => [...prev, userMessage]);
@@ -102,16 +130,20 @@ export function ChatWidget() {
 
   if (!ai.enabled) return null;
 
-  function toggleChat() {
-    setOpen((prev) => {
-      const next = !prev;
-      if (next && !greetingShown.current) {
-        greetingShown.current = true;
-        setMessages([{ role: "assistant", content: ai.greetingMessage }]);
-      }
-      return next;
-    });
-  }
+  // function toggleChat() {
+  //   setOpen((prev) => {
+  //     const next = !prev;
+  //     if (next && !greetingShown.current) {
+  //       greetingShown.current = true;
+  //       setMessages([{ 
+  //         role: "assistant", 
+  //         content: ai.greetingMessage 
+  //       }
+  //     ]);
+  //     }
+  //     return next;
+  //   });
+  // }
   return (
     <>
       {/* Floating button */}
@@ -153,12 +185,11 @@ export function ChatWidget() {
 
       {/* Chat panel */}
       <div
-        className={`fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-surface rounded-2xl shadow-2xl border border-gray-100 flex flex-col transition-all duration-300 ${
+        className={`fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-surface rounded-2xl shadow-2xl border border-gray-100 flex flex-col transition-all duration-300 max-h-[520px] ${
           open
             ? "opacity-100 translate-y-0 pointer-events-auto"
             : "opacity-0 translate-y-4 pointer-events-none"
         }`}
-        style={{ maxHeight: "520px" }}
         role="dialog"
         aria-label={`Chat with ${ai.assistantName}`}
       >
@@ -228,7 +259,7 @@ export function ChatWidget() {
               placeholder={`Ask ${ai.assistantName}…`}
               maxLength={500}
               disabled={typing}
-              className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50"
+              className="flex-1 text-sm text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50"
             />
             <button
               onClick={sendMessage}

@@ -19,7 +19,6 @@ interface AuthState {
   isLoading: boolean;
   isHydrated: boolean;
 
-  // Actions
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setAuth: (user: User, token: string) => void;
@@ -34,7 +33,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isHydrated: false,
 
   setAuth: (user, accessToken) => set({ user, accessToken }),
-
   clearAuth: () => set({ user: null, accessToken: null }),
 
   login: async (email, password) => {
@@ -61,15 +59,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, accessToken: null });
   },
 
-  // Called once on app mount to restore session via refresh token cookie
   hydrate: async () => {
     if (get().isHydrated) return;
+    set({ isLoading: true }); // ← keep isLoading true during refresh
+
     try {
       const data = (await api.auth.refresh()) as { accessToken: string };
       const user = (await api.auth.me(data.accessToken)) as { user: User };
-      set({ user: user.user, accessToken: data.accessToken, isHydrated: true });
-    } catch {
-      set({ isHydrated: true }); // Not logged in — that's fine
+      set({
+        user: user.user,
+        accessToken: data.accessToken,
+        isLoading: false,
+        isHydrated: true
+     });
+    } catch (err) {
+      // 401 = no active session (expected). Anything else = config problem.
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[auth] hydrate failed:", err);
+      }
+      set({
+        user: null,
+        accessToken: null,
+        isLoading: false,
+        isHydrated: true,
+      });
     }
   },
 }));

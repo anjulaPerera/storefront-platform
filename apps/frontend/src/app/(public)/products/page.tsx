@@ -4,6 +4,7 @@ import { ProductGrid } from "@/components/product/ProductGrid";
 import { FilterSidebar } from "@/components/product/FilterSidebar";
 import { Pagination } from "@/components/ui/Pagination";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { FadeIn } from "@/components/motion/FadeIn";
 
 interface SearchParams {
   page?: string;
@@ -37,45 +38,49 @@ interface Meta {
   limit: number;
   total: number;
   totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
 }
 
 interface Category {
   id: string;
   name: string;
   slug: string;
-  children?: Category[];
 }
 
-async function getProducts(params: SearchParams) {
+async function getData(params: SearchParams) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
     if (v) query.set(k, v);
   });
   if (!query.get("limit")) query.set("limit", "20");
 
-  const [productsRes, categoriesRes] = await Promise.allSettled([
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/products?${query.toString()}`, {
+  const [productsRes, catsRes] = await Promise.allSettled([
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/products?${query}`, {
       cache: "no-store",
-    }).then((r) => r.json()) as Promise<{ data: Product[]; meta: Meta }>,
+    }).then((r) => {
+      if (!r.ok) throw new Error("Failed to fetch products");
+      return r.json();
+    }) as Promise<{ data: Product[]; meta: Meta }>,
     apiFetch<Category[]>("/categories", { next: { revalidate: 600 } }),
   ]);
 
+  // Safer fallback check ensuring .data actually exists
   const products =
-    productsRes.status === "fulfilled" ? productsRes.value.data : [];
+    productsRes.status === "fulfilled" && productsRes.value?.data
+      ? productsRes.value.data
+      : [];
+
   const meta =
-    productsRes.status === "fulfilled" ? productsRes.value.meta : null;
-  const categories =
-    categoriesRes.status === "fulfilled" ? categoriesRes.value : [];
+    productsRes.status === "fulfilled" && productsRes.value?.meta
+      ? productsRes.value.meta
+      : null;
 
-  // Extract unique brands for filter
+  const categories = catsRes.status === "fulfilled" ? catsRes.value : [];
+
   const brandSet = new Set(
-    products.filter((p) => p.brand).map((p) => p.brand as string),
+    products.filter((p) => p?.brand).map((p) => p.brand as string),
   );
-  const brands = Array.from(brandSet).sort();
 
-  return { products, meta, categories, brands };
+  return { products, meta, categories, brands: Array.from(brandSet).sort() };
 }
 
 export default async function ProductsPage({
@@ -83,50 +88,64 @@ export default async function ProductsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { products, meta, categories, brands } =
-    await getProducts(searchParams);
+  const { products, meta, categories, brands } = await getData(searchParams);
+
+  const heading = searchParams.search
+    ? `"${searchParams.search}"`
+    : searchParams.categorySlug
+      ? (categories.find((c) => c.slug === searchParams.categorySlug)?.name ??
+        "Products")
+      : "All Products";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Breadcrumb
-        items={[{ label: "Home", href: "/" }, { label: "Products" }]}
+    <div className="min-h-screen flex flex-col pt-24">
+      {/* Ambient top glow - Replaced inline CSS with Tailwind background radial setup */}
+      <div
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_rgba(37,99,235,0.08)_0%,_transparent_60%)]"
+        aria-hidden="true"
       />
 
-      <div className="flex gap-8">
-        {/* Sidebar */}
-        <aside className="hidden lg:block w-56 flex-shrink-0">
-          <Suspense>
-            <FilterSidebar categories={categories} brands={brands} />
-          </Suspense>
-        </aside>
+      <div className="container-wide py-12 relative z-10">
+        <Breadcrumb
+          items={[{ label: "Home", href: "/" }, { label: "Products" }]}
+        />
 
-        {/* Main */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-foreground">
-              {searchParams.search
-                ? `Search: "${searchParams.search}"`
-                : searchParams.categorySlug
-                  ? (categories.find(
-                      (c) => c.slug === searchParams.categorySlug,
-                    )?.name ?? "Products")
-                  : "All Products"}
-            </h1>
-            {meta && (
-              <p className="text-sm text-muted">{meta.total} products</p>
+        <div className="flex gap-10">
+          {/* Sidebar */}
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <Suspense>
+              <FilterSidebar categories={categories} brands={brands} />
+            </Suspense>
+          </aside>
+
+          {/* Main */}
+          <div className="flex-1 min-w-0">
+            <FadeIn className="flex items-center justify-between mb-8 flex-wrap gap-4">
+              <div>
+                <h1 className="font-display font-black text-3xl text-white">
+                  {heading}
+                </h1>
+                {meta && (
+                  <p className="text-sm text-muted mt-1">
+                    {meta.total} products
+                  </p>
+                )}
+              </div>
+            </FadeIn>
+
+            <FadeIn variant="scale">
+              <ProductGrid products={products} columns={3} />
+            </FadeIn>
+
+            {meta && meta.totalPages > 1 && (
+              <Suspense>
+                <Pagination
+                  currentPage={meta.page}
+                  totalPages={meta.totalPages}
+                />
+              </Suspense>
             )}
           </div>
-
-          <ProductGrid products={products} columns={3} />
-
-          {meta && meta.totalPages > 1 && (
-            <Suspense>
-              <Pagination
-                currentPage={meta.page}
-                totalPages={meta.totalPages}
-              />
-            </Suspense>
-          )}
         </div>
       </div>
     </div>

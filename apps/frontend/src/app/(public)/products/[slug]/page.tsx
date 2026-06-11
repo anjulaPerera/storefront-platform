@@ -39,6 +39,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function ProductDetailPage({ params }: { params: { slug: string } }) {
   let product: Product;
   try {
+    
     product = await apiFetch<Product>(`/products/${params.slug}`, { next: { revalidate: 600 } });
   } catch {
     notFound();
