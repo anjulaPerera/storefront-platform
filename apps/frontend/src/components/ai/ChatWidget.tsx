@@ -70,6 +70,7 @@ export function ChatWidget() {
     const history = messages
       .filter((m) => !m.isError)
       .slice(-10)
+      .filter((m) => !(m.role === "assistant" && m === messages[0]))
       .map((m) => ({ role: m.role, content: m.content }));
 
     setMessages((prev) => [...prev, userMessage]);

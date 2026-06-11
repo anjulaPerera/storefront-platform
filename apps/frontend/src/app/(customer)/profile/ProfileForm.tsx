@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export function ProfileForm() {
   const router = useRouter();
-  const { user, accessToken, setAuth } = useAuthStore();
+  const { user, accessToken, setAuth, isHydrated, isLoading } = useAuthStore();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,13 +16,15 @@ export function ProfileForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!isHydrated || isLoading) return;
+
     if (!user) {
       router.push("/login");
       return;
     }
     setFirstName(user.firstName);
     setLastName(user.lastName);
-  }, [user, router]);
+  }, [user, isHydrated, isLoading, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,7 +47,13 @@ export function ProfileForm() {
     setLoading(false);
   }
 
-  if (!user) return null;
+ if (!isHydrated || isLoading) {
+   return <div className="py-10">Loading profile...</div>;
+ }
+
+ if (!user) {
+   return null;
+ }
 
   return (
     <form

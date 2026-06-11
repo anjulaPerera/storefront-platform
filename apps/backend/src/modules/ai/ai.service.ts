@@ -134,7 +134,10 @@ export async function chat(
   const geminiHistory: Content[] = history.slice(-10).map((msg) => ({
     role: msg.role === "assistant" ? "model" : "user",
     parts: [{ text: msg.content }],
-  }));
+  })) .reduce<Content[]>((acc, turn) => {
+    if (acc.length === 0 && turn.role === "model") return acc;
+    return [...acc, turn];
+  }, []);
 
   const chatSession = model.startChat({ history: geminiHistory });
   const result = await chatSession.sendMessage(message);

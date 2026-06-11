@@ -61,18 +61,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   hydrate: async () => {
     if (get().isHydrated) return;
-    set({ isHydrated: true, isLoading: true }); // ← keep isLoading true during refresh
+    set({ isLoading: true }); // ← keep isLoading true during refresh
 
     try {
       const data = (await api.auth.refresh()) as { accessToken: string };
       const user = (await api.auth.me(data.accessToken)) as { user: User };
-      set({ user: user.user, accessToken: data.accessToken, isLoading: false });
+      set({
+        user: user.user,
+        accessToken: data.accessToken,
+        isLoading: false,
+        isHydrated: true
+     });
     } catch (err) {
       // 401 = no active session (expected). Anything else = config problem.
       if (process.env.NODE_ENV !== "production") {
         console.warn("[auth] hydrate failed:", err);
       }
-      set({ user: null, accessToken: null, isLoading: false });
+      set({
+        user: null,
+        accessToken: null,
+        isLoading: false,
+        isHydrated: true,
+      });
     }
   },
 }));
