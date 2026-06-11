@@ -33,7 +33,7 @@ export function useAdminData<T>(
   }, [accessToken]); // ← plain literal array, no spread
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     void load();
   }, [load, reloadKey]); // ← reloadKey re-fires when filter changes
 

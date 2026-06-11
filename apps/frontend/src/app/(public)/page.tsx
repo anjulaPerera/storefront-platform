@@ -5,7 +5,7 @@ import { ProductGrid } from "@/components/product/ProductGrid";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { ChatTriggerButton } from "@/components/ai/ChatTriggerButton";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 interface Product {
   id: string;
@@ -29,8 +29,12 @@ interface Category {
 
 async function getData() {
   const [featured, categories] = await Promise.allSettled([
-    apiFetch<Product[]>("/products/featured?limit=8", { cache: "no-store" }),
-    apiFetch<Category[]>("/categories", { cache: "no-store" }),
+    apiFetch<Product[]>("/products/featured?limit=8",{
+  next: { revalidate: 300 },
+}),
+    apiFetch<Category[]>("/categories",{
+  next: { revalidate: 300 },
+}),
   ]);
   return {
     featured: featured.status === "fulfilled" ? featured.value : [],

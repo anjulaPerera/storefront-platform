@@ -10,6 +10,10 @@ const isBrowser = typeof window !== "undefined";
 //
 // NEXT_PUBLIC_API_URL is still read by next.config.mjs (rewrite destination)
 // and by any other file that needs it — nothing else changes.
+
+if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL is missing");
+}
 const _serverBase =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4000/api/v1";
 const BASE_URL = isBrowser

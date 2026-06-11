@@ -29,7 +29,7 @@ export function Navbar() {
 
   useEffect(() => {
     closeMobileMenu();
-  }, [pathname]);
+  }, [closeMobileMenu, pathname]);
 
   // Derived flag: true while the session restoration is still in flight.
   // When this is true we don't yet know whether the visitor is logged in or

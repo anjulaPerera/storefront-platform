@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { api, ApiError } from "@/lib/api";
 
@@ -52,6 +52,24 @@ export function ChatWidget() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
+const toggleChat = useCallback(() => {
+  setOpen((prev) => {
+    const next = !prev;
+
+    if (next && !greetingShown.current) {
+      greetingShown.current = true;
+      setMessages([
+        {
+          role: "assistant",
+          content: ai.greetingMessage,
+        },
+      ]);
+    }
+
+    return next;
+  });
+}, [ai.greetingMessage]);
+
   useEffect(() => {
     function handleOpenChat() {
       if (!open) {
@@ -60,7 +78,7 @@ export function ChatWidget() {
     }
     window.addEventListener("open-ai-chat", handleOpenChat);
     return () => window.removeEventListener("open-ai-chat", handleOpenChat);
-  }, [open]);
+  }, [open, toggleChat]);
 
   async function sendMessage() {
     const text = input.trim();
@@ -112,16 +130,20 @@ export function ChatWidget() {
 
   if (!ai.enabled) return null;
 
-  function toggleChat() {
-    setOpen((prev) => {
-      const next = !prev;
-      if (next && !greetingShown.current) {
-        greetingShown.current = true;
-        setMessages([{ role: "assistant", content: ai.greetingMessage }]);
-      }
-      return next;
-    });
-  }
+  // function toggleChat() {
+  //   setOpen((prev) => {
+  //     const next = !prev;
+  //     if (next && !greetingShown.current) {
+  //       greetingShown.current = true;
+  //       setMessages([{ 
+  //         role: "assistant", 
+  //         content: ai.greetingMessage 
+  //       }
+  //     ]);
+  //     }
+  //     return next;
+  //   });
+  // }
   return (
     <>
       {/* Floating button */}

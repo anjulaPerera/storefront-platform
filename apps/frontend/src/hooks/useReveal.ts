@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-export function useReveal<T extends HTMLElement = HTMLDivElement>(
+export function useReveal<T extends HTMLElement = HTMLElement>(
   options: IntersectionObserverInit = {},
 ) {
-  const ref = useRef<T>(null);
+  const ref = useRef<T | null>(null);
+
+  const { threshold = 0.1, rootMargin = "0px 0px -40px 0px", root } = options;
 
   useEffect(() => {
     const el = ref.current;
@@ -17,17 +19,22 @@ export function useReveal<T extends HTMLElement = HTMLDivElement>(
           observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px", ...options },
+      {
+        threshold,
+        rootMargin,
+        root,
+      },
     );
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [threshold, rootMargin, root]);
 
   return ref;
 }
 
 export function useRevealAll(selector: string = ".reveal") {
+  
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
