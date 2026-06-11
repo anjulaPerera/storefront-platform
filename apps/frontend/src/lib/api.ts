@@ -1,11 +1,22 @@
-
 const isBrowser = typeof window !== "undefined";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL
-  ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1`
-  : isBrowser
-    ? "/api/backend/api/v1"
-    : "http://localhost:4000/api/v1";
+// BROWSER: always use the relative proxy path (/api/backend/...) regardless of
+// NEXT_PUBLIC_API_URL. This keeps every cookie on the same origin (localhost:3000
+// in dev, your domain in prod) so the refresh-token Set-Cookie is stored and
+// sent back automatically — no CORS, no sameSite, no secure-flag issues.
+//
+// SERVER (SSR): use NEXT_PUBLIC_API_URL for direct backend-to-backend calls.
+// These never involve cookies so the env var is safe to use here.
+//
+// NEXT_PUBLIC_API_URL is still read by next.config.mjs (rewrite destination)
+// and by any other file that needs it — nothing else changes.
+const _serverBase =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4000/api/v1";
+const BASE_URL = isBrowser
+  ? "/api/backend/api/v1"
+  : _serverBase.endsWith("/api/v1")
+    ? _serverBase
+    : `${_serverBase}/api/v1`;
 
 export class ApiError extends Error {
   constructor(
@@ -29,8 +40,29 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { token, params, ...fetchOptions } = options;
 
-  // Build URL with query params
-  const url = new URL(`${BASE_URL}${endpoint}`);
+  // Strip /api/v1 prefix from endpoint if base already includes it
+  let clean = endpoint.startsWith("/api/v1")
+    ? endpoint.slice(7) // remove the 7 chars of '/api/v1'
+    : endpoint;
+
+  // Ensure clean always has a leading slash for the URL constructor
+  if (!clean.startsWith("/")) {
+    clean = `/${clean}`;
+  }
+
+  // Build URL with query params.
+  // new URL() requires an absolute URL — when BASE_URL is a relative path (e.g. "/api/backend/api/v1"),
+  // we must supply window.location.origin as the base, otherwise it throws a TypeError that gets
+  // swallowed by the hydrate() catch block and silently logs the user out on every page refresh.
+  const rawHref = `${BASE_URL}${clean}`;
+  const url = rawHref.startsWith("http")
+    ? new URL(rawHref)
+    : new URL(
+        rawHref,
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "http://localhost:3000",
+      );
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined) url.searchParams.set(k, String(v));
@@ -216,6 +248,7 @@ export const api = {
   config: {
     public: () => apiFetch("/config/public", { next: { revalidate: 3600 } }),
   },
+
   // Admin
   admin: {
     stats: (token: string) =>

@@ -14,7 +14,10 @@ export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { user, logout } = useAuthStore();
+
+  // ← Added isHydrated and isLoading alongside user and logout
+  const { user, logout, isHydrated, isLoading } = useAuthStore();
+
   const { mobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useUIStore();
   const wishlistCount = useWishlistStore((s) => s.productIds.size);
 
@@ -28,7 +31,10 @@ export function Navbar() {
     closeMobileMenu();
   }, [pathname]);
 
-  // const isHome = pathname === "/";
+  // Derived flag: true while the session restoration is still in flight.
+  // When this is true we don't yet know whether the visitor is logged in or
+  // not, so we render a neutral placeholder instead of either state.
+  const sessionPending = !isHydrated || isLoading;
 
   return (
     <>
@@ -102,7 +108,6 @@ export function Navbar() {
                       )}
                     </Link>
 
-                    {/* Dropdown — pt-2 creates invisible hover bridge, no gap */}
                     {link.children && (
                       <div
                         className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-52
@@ -179,14 +184,23 @@ export function Navbar() {
                 )}
               </Link>
 
-              {/* Account */}
-              {user ? (
+              {/* Account — three possible states:
+                  1. sessionPending: we don't know yet → show a shimmer placeholder
+                  2. user exists: show avatar + dropdown
+                  3. no user: show Sign In button                                   */}
+              {sessionPending ? (
+                // Matches the width/height of the Sign In button so the navbar
+                // doesn't shift when the real element appears.
+                <div className="w-20 h-9 rounded-full bg-white/5 animate-pulse" />
+              ) : user ? (
                 <div className="relative group">
                   <button className="flex items-center gap-2 px-3 py-2 rounded-full glass border border-border-mid hover:border-border-bright transition-all text-sm font-medium text-foreground">
                     <span className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[11px] font-bold text-white">
                       {user.firstName[0]}
                     </span>
-                    <span className="hidden sm:block">{user.firstName}</span>
+                    <span className="hidden sm:block text-white">
+                      {user.firstName}
+                    </span>
                   </button>
                   <div className="absolute right-0 top-full mt-2 w-48 glass-2 rounded-2xl border border-border-mid overflow-hidden shadow-card opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                     <div className="py-2">
