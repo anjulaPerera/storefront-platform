@@ -236,7 +236,7 @@ export function ChatWidget() {
               placeholder={`Ask ${ai.assistantName}…`}
               maxLength={500}
               disabled={typing}
-              className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50"
+              className="flex-1 text-sm text-gray-900 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50"
             />
             <button
               onClick={sendMessage}

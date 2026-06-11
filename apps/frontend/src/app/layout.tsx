@@ -41,7 +41,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${syne.variable} ${manrope.variable}`}>
+    <html
+      lang="en"
+      className={`${syne.variable} ${manrope.variable}`}
+      suppressHydrationWarning
+    >
       <body className="noise-overlay">
         <AppProviders>
           <TopStrip />

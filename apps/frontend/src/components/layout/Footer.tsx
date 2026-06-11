@@ -106,13 +106,14 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="divider-gradient my-10" />
+        <div className="divider-gradient mt-5" />
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-dim">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-dim pt-5">
           <p>
             © {new Date().getFullYear()} {identity.shopName}. All rights
             reserved.
           </p>
+          <p>Made with L♥VE by Anjula</p>
           <p>Built for Sri Lanka's best mobile experience</p>
         </div>
       </div>
