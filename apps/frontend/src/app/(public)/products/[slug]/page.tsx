@@ -70,7 +70,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
     : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-24">
       <Breadcrumb items={[
         { label: 'Home', href: '/' },
         { label: 'Products', href: '/products' },
@@ -100,13 +100,13 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
 
         {/* Details */}
         <div className="flex flex-col">
-          {product.brand && <p className="text-sm text-muted mb-1">{product.brand}</p>}
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">{product.name}</h1>
+          {product.brand && <p className="text-sm text-white/50 mb-1">{product.brand}</p>}
+          <h1 className="text-2xl sm:text-3xl font-bold text-white/80 mb-3">{product.name}</h1>
 
           {product.reviewCount > 0 && (
             <div className="flex items-center gap-2 mb-4">
               <StarRating rating={product.averageRating} />
-              <span className="text-sm text-muted">
+              <span className="text-sm text-white/70">
                 {product.averageRating.toFixed(1)} ({product.reviewCount} reviews)
               </span>
             </div>
@@ -119,7 +119,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
                 <span className="text-3xl font-bold text-primary">
                   {currencySymbol}{product.discountedPrice!.toLocaleString(locale)}
                 </span>
-                <span className="text-xl text-muted line-through">
+                <span className="text-xl text-white line-through">
                   {currencySymbol}{product.price.toLocaleString(locale)}
                 </span>
                 {product.activeDiscount?.label && (
@@ -127,7 +127,7 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
                 )}
               </>
             ) : (
-              <span className="text-3xl font-bold text-foreground">
+              <span className="text-3xl font-bold text-white">
                 {currencySymbol}{product.price.toLocaleString(locale)}
               </span>
             )}
@@ -174,14 +174,14 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
       {/* Specifications table */}
       {specRows.length > 0 && (
         <section className="mb-12">
-          <h2 className="text-xl font-bold text-foreground mb-4">Specifications</h2>
+          <h2 className="text-xl font-bold text-white/80 mb-4">Specifications</h2>
           <div className="overflow-hidden rounded-xl border border-gray-100">
             <table className="w-full text-sm">
               <tbody>
                 {specRows.map((row, idx) => (
-                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-surface'}>
-                    <td className="px-4 py-3 font-medium text-muted w-1/3">{row.label}</td>
-                    <td className="px-4 py-3 text-foreground">{row.value}</td>
+                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-gray-600' : 'bg-gray-700'}>
+                    <td className="px-4 py-3 text-white w-1/3 font-bold">{row.label}</td>
+                    <td className="px-4 py-3 text-white">{row.value}</td>
                   </tr>
                 ))}
               </tbody>

@@ -6,13 +6,22 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "placehold.co" },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
+        hostname: "fdn2.gsmarena.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
   },
 
   async rewrites() {
-
     const backendOrigin = (() => {
       const raw =
         process.env.BACKEND_URL ??

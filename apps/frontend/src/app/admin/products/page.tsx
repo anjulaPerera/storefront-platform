@@ -8,6 +8,7 @@ import { api, ApiError } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AttributeEditor } from "@/components/admin/AttributeEditor";
+import { ImageUpload } from "../ImageUpload";
 import { Badge } from "@/components/ui/Badge";
 import { useAdminData } from "@/hooks/useAdminData";
 
@@ -147,11 +148,11 @@ export default function AdminProductsPage() {
     setShowPreview(false);
 
     try {
-    const result = (await api.ai.generateProduct(
-      form.name.trim(),
-      form.externalLink || undefined,
-      accessToken,
-    )) as GeneratedContent;
+      const result = (await api.ai.generateProduct(
+        form.name.trim(),
+        form.externalLink || undefined,
+        accessToken,
+      )) as GeneratedContent;
 
       setGeneratedPreview(result);
       setShowPreview(true);
@@ -189,7 +190,7 @@ export default function AdminProductsPage() {
     if (!accessToken) return;
     setSaving(true);
     setError("");
-    const data = {
+    const payload = {
       categoryId: form.categoryId,
       name: form.name,
       description: form.description || null,
@@ -207,9 +208,9 @@ export default function AdminProductsPage() {
     };
     try {
       if (editing) {
-        await api.admin.updateProduct(editing.id, data, accessToken);
+        await api.admin.updateProduct(editing.id, payload, accessToken);
       } else {
-        await api.admin.createProduct(data, accessToken);
+        await api.admin.createProduct(payload, accessToken);
       }
       setShowForm(false);
       await reload();
@@ -558,7 +559,6 @@ export default function AdminProductsPage() {
                 </button>
               </div>
 
-              {/* Description preview */}
               <div>
                 <p className="text-xs font-medium text-violet-400 mb-1">
                   Description
@@ -568,7 +568,6 @@ export default function AdminProductsPage() {
                 </p>
               </div>
 
-              {/* Key Features */}
               {generatedPreview.keyFeatures?.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-violet-400 mb-1">
@@ -588,7 +587,6 @@ export default function AdminProductsPage() {
                 </div>
               )}
 
-              {/* SEO preview */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs font-medium text-violet-400 mb-0.5">
@@ -608,7 +606,6 @@ export default function AdminProductsPage() {
                 </div>
               </div>
 
-              {/* Apply button */}
               <button
                 type="button"
                 onClick={applyGenerated}
@@ -619,24 +616,19 @@ export default function AdminProductsPage() {
             </div>
           )}
 
-          {/* Thumbnail & External Link */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="prod-thumb" className={labelClass}>
-                Thumbnail URL
-              </label>
-              <input
-                id="prod-thumb"
-                type="url"
+          {/* ─── Thumbnail upload + External Link ─────────────────────────── */}
+          <div className="grid grid-cols-2 gap-4 items-start">
+            {/* Cloudinary image upload — spans full width on its own row */}
+            <div className="col-span-2">
+              <ImageUpload
+                label="Product Thumbnail"
                 value={form.thumbnail}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, thumbnail: e.target.value }))
-                }
-                className={fieldClass}
-                placeholder="https://…"
+                onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))}
               />
             </div>
-            <div>
+
+            {/* External Spec Link */}
+            <div className="col-span-2">
               <label htmlFor="prod-ext" className={labelClass}>
                 External Spec Link
                 <span className="ml-1 text-violet-400 text-xs">
@@ -740,7 +732,10 @@ export default function AdminProductsPage() {
                   value={form.metaDescription}
                   maxLength={320}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, metaDescription: e.target.value }))
+                    setForm((f) => ({
+                      ...f,
+                      metaDescription: e.target.value,
+                    }))
                   }
                   className={`${fieldClass} admin-textarea`}
                 />
@@ -772,7 +767,7 @@ export default function AdminProductsPage() {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-6 py-2 border border-gray-200 rounded-lg text-sm text-white/50 hover:bg-gray-50 hover:text-slate-900" 
+              className="px-6 py-2 border border-gray-200 rounded-lg text-sm text-white/50 hover:bg-gray-50 hover:text-slate-900"
             >
               Cancel
             </button>
