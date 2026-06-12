@@ -16,3 +16,10 @@ export const chatSchema = z.object({
       .default([]),
   }),
 });
+
+export const generateProductSchema = z.object({
+  body: z.object({
+    productName: z.string().min(1).max(200),
+    externalLink: z.string().url().optional(),
+  }),
+});

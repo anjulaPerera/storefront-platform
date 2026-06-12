@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { useAuthStore } from "@/store/auth.store";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AttributeEditor } from "@/components/admin/AttributeEditor";
@@ -37,6 +37,13 @@ interface Category {
   slug: string;
 }
 
+interface GeneratedContent {
+  description: string;
+  metaTitle: string;
+  metaDescription: string;
+  keyFeatures: string[];
+}
+
 const EMPTY_FORM = {
   categoryId: "",
   name: "",
@@ -58,17 +65,21 @@ export default function AdminProductsPage() {
   const { accessToken } = useAuthStore();
   const { currencySymbol } = tenantConfig.identity;
 
-  // ← lazy init: reads the URL once on mount, no effect needed
   const [showForm, setShowForm] = useState(false);
-
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // AI generation state
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
+  const [generatedPreview, setGeneratedPreview] =
+    useState<GeneratedContent | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-
     if (params.get("action") === "new") {
       setShowForm(true);
     }
@@ -90,6 +101,9 @@ export default function AdminProductsPage() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setError("");
+    setGenerateError("");
+    setGeneratedPreview(null);
+    setShowPreview(false);
     setShowForm(true);
   }
 
@@ -112,8 +126,63 @@ export default function AdminProductsPage() {
       attributes: p.attributes,
     });
     setError("");
+    setGenerateError("");
+    setGeneratedPreview(null);
+    setShowPreview(false);
     setShowForm(true);
   }
+
+  // ─── AI Generate handler ───────────────────────────────────────────────────
+
+  async function handleGenerate() {
+    if (!form.name.trim()) {
+      setGenerateError("Enter a product name first.");
+      return;
+    }
+    if (!accessToken) return;
+
+    setGenerating(true);
+    setGenerateError("");
+    setGeneratedPreview(null);
+    setShowPreview(false);
+
+    try {
+    const result = (await api.ai.generateProduct(
+      form.name.trim(),
+      form.externalLink || undefined,
+      accessToken,
+    )) as GeneratedContent;
+
+      setGeneratedPreview(result);
+      setShowPreview(true);
+    } catch (err) {
+      const isRateLimit =
+        err instanceof ApiError && err.code === "RATE_LIMITED";
+      setGenerateError(
+        isRateLimit
+          ? "Too many requests. Please wait a moment."
+          : err instanceof Error
+            ? err.message
+            : "Generation failed. Try again.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  function applyGenerated() {
+    if (!generatedPreview) return;
+    setForm((f) => ({
+      ...f,
+      description: generatedPreview.description,
+      metaTitle: generatedPreview.metaTitle,
+      metaDescription: generatedPreview.metaDescription,
+    }));
+    setShowPreview(false);
+    setGeneratedPreview(null);
+  }
+
+  // ─── Save ─────────────────────────────────────────────────────────────────
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -165,10 +234,14 @@ export default function AdminProductsPage() {
   const selectedCategoryKey =
     categories.find((c) => c.id === form.categoryId)?.slug ?? "";
 
+  const fieldClass = "admin-field";
+  const selectClass = "admin-field admin-select";
+  const labelClass = "admin-label";
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Products</h1>
+      <div className="flex items-center justify-between mb-6 pt-24">
+        <h1 className="text-2xl font-bold text-white/80">Products</h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
@@ -201,7 +274,7 @@ export default function AdminProductsPage() {
                     <div className="w-9 h-9 rounded-lg bg-gray-100" />
                   )}
                   <div>
-                    <p className="font-medium text-foreground text-sm">
+                    <p className="font-medium text-white/70 text-sm">
                       {p.name}
                     </p>
                     {p.brand && <p className="text-xs text-muted">{p.brand}</p>}
@@ -282,14 +355,11 @@ export default function AdminProductsPage() {
       >
         <form
           onSubmit={handleSave}
-          className="space-y-5 max-h-[70vh] overflow-y-auto pr-2"
+          className="space-y-6 max-h-[72vh] overflow-y-auto pr-2"
         >
           {/* Category */}
           <div>
-            <label
-              htmlFor="prod-cat"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
+            <label htmlFor="prod-cat" className={labelClass}>
               Category *
             </label>
             <select
@@ -303,11 +373,13 @@ export default function AdminProductsPage() {
                   attributes: {},
                 }))
               }
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className={selectClass}
             >
-              <option value="">Select category…</option>
+              <option value="" className="text-foreground">
+                Select category…
+              </option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>
+                <option key={c.id} value={c.id} className="text-foreground">
                   {c.name}
                 </option>
               ))}
@@ -315,30 +387,73 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Name */}
+            {/* Name + AI button */}
             <div className="col-span-2">
-              <label
-                htmlFor="prod-name"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="prod-name" className={labelClass}>
                 Product Name *
               </label>
-              <input
-                id="prod-name"
-                required
-                value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
-                }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              <div className="flex gap-2 items-start">
+                <input
+                  id="prod-name"
+                  required
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                  className={`${fieldClass} flex-1`}
+                  placeholder="e.g. Samsung Galaxy S25 Ultra"
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={generating || !form.name.trim()}
+                  title="Generate description, SEO fields, and key features with AI"
+                  className="
+                    flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+                    bg-violet-600 hover:bg-violet-700 text-white
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-colors whitespace-nowrap flex-shrink-0
+                  "
+                >
+                  {generating ? (
+                    <>
+                      <svg
+                        className="w-4 h-4 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        />
+                      </svg>
+                      Generating…
+                    </>
+                  ) : (
+                    <>
+                      <span>✨</span>
+                      AI Fill
+                    </>
+                  )}
+                </button>
+              </div>
+              {generateError && (
+                <p className="text-xs text-red-400 mt-1">{generateError}</p>
+              )}
             </div>
+
             {/* Price */}
             <div>
-              <label
-                htmlFor="prod-price"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="prod-price" className={labelClass}>
                 Price ({currencySymbol}) *
               </label>
               <input
@@ -351,15 +466,13 @@ export default function AdminProductsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, price: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
               />
             </div>
+
             {/* Stock */}
             <div>
-              <label
-                htmlFor="prod-stock"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="prod-stock" className={labelClass}>
                 Stock Quantity
               </label>
               <input
@@ -370,15 +483,13 @@ export default function AdminProductsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, stockQuantity: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
               />
             </div>
+
             {/* Brand */}
             <div>
-              <label
-                htmlFor="prod-brand"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="prod-brand" className={labelClass}>
                 Brand
               </label>
               <input
@@ -387,15 +498,13 @@ export default function AdminProductsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, brand: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
               />
             </div>
+
             {/* SKU */}
             <div>
-              <label
-                htmlFor="prod-sku"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="prod-sku" className={labelClass}>
                 SKU
               </label>
               <input
@@ -404,37 +513,116 @@ export default function AdminProductsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, sku: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
               />
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <label
-              htmlFor="prod-desc"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
-              Description
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="prod-desc" className={labelClass}>
+                Description
+              </label>
+              {form.description && (
+                <span className="text-xs text-muted">
+                  {form.description.length} chars
+                </span>
+              )}
+            </div>
             <textarea
               id="prod-desc"
-              rows={3}
+              rows={4}
               value={form.description}
               onChange={(e) =>
                 setForm((f) => ({ ...f, description: e.target.value }))
               }
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className={`${fieldClass} admin-textarea`}
+              placeholder="Product description — or use ✨ AI Fill above to generate it"
             />
           </div>
+
+          {/* ─── AI Preview Panel ─────────────────────────────────────────── */}
+          {showPreview && generatedPreview && (
+            <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-violet-300 flex items-center gap-1.5">
+                  <span>✨</span> AI Generated Preview
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="text-xs text-muted hover:text-white transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+
+              {/* Description preview */}
+              <div>
+                <p className="text-xs font-medium text-violet-400 mb-1">
+                  Description
+                </p>
+                <p className="text-xs text-slate-300 leading-relaxed line-clamp-4">
+                  {generatedPreview.description}
+                </p>
+              </div>
+
+              {/* Key Features */}
+              {generatedPreview.keyFeatures?.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-violet-400 mb-1">
+                    Key Features
+                  </p>
+                  <ul className="space-y-0.5">
+                    {generatedPreview.keyFeatures.map((f, i) => (
+                      <li
+                        key={i}
+                        className="text-xs text-slate-300 flex gap-1.5"
+                      >
+                        <span className="text-violet-400 flex-shrink-0">•</span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* SEO preview */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs font-medium text-violet-400 mb-0.5">
+                    Meta Title
+                  </p>
+                  <p className="text-xs text-slate-300">
+                    {generatedPreview.metaTitle}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-violet-400 mb-0.5">
+                    Meta Description
+                  </p>
+                  <p className="text-xs text-slate-300 line-clamp-2">
+                    {generatedPreview.metaDescription}
+                  </p>
+                </div>
+              </div>
+
+              {/* Apply button */}
+              <button
+                type="button"
+                onClick={applyGenerated}
+                className="w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors"
+              >
+                Apply to Form
+              </button>
+            </div>
+          )}
 
           {/* Thumbnail & External Link */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="prod-thumb"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="prod-thumb" className={labelClass}>
                 Thumbnail URL
               </label>
               <input
@@ -444,16 +632,16 @@ export default function AdminProductsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, thumbnail: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
                 placeholder="https://…"
               />
             </div>
             <div>
-              <label
-                htmlFor="prod-ext"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="prod-ext" className={labelClass}>
                 External Spec Link
+                <span className="ml-1 text-violet-400 text-xs">
+                  (used by AI)
+                </span>
               </label>
               <input
                 id="prod-ext"
@@ -462,14 +650,14 @@ export default function AdminProductsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, externalLink: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
                 placeholder="https://gsmarena.com/…"
               />
             </div>
           </div>
 
           {/* Toggles */}
-          <div className="flex gap-6">
+          <div className="flex gap-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -480,7 +668,7 @@ export default function AdminProductsPage() {
                 }
                 className="w-4 h-4 text-primary border-gray-300 rounded"
               />
-              <span className="text-sm text-foreground">
+              <span className="text-sm text-white/50">
                 Featured on homepage
               </span>
             </label>
@@ -494,11 +682,11 @@ export default function AdminProductsPage() {
                 }
                 className="w-4 h-4 text-primary border-gray-300 rounded"
               />
-              <span className="text-sm text-foreground">Active (visible)</span>
+              <span className="text-sm text-white/50">Active (visible)</span>
             </label>
           </div>
 
-          {/* Dynamic attributes from SSOT taxonomy */}
+          {/* Dynamic attributes */}
           {selectedCategoryKey && (
             <div>
               <p className="text-sm font-medium text-foreground mb-3">
@@ -515,16 +703,18 @@ export default function AdminProductsPage() {
           )}
 
           {/* SEO */}
-          <details className="text-sm">
+          <details className="text-sm" open={!!form.metaTitle}>
             <summary className="cursor-pointer font-medium text-muted hover:text-foreground">
               SEO (optional)
+              {form.metaTitle && (
+                <span className="ml-2 text-xs text-violet-400">
+                  ✨ AI filled
+                </span>
+              )}
             </summary>
             <div className="mt-3 space-y-3">
               <div>
-                <label
-                  htmlFor="prod-meta-title"
-                  className="block text-sm font-medium text-foreground mb-1"
-                >
+                <label htmlFor="prod-meta-title" className={labelClass}>
                   Meta Title
                 </label>
                 <input
@@ -534,14 +724,14 @@ export default function AdminProductsPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, metaTitle: e.target.value }))
                   }
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={fieldClass}
                 />
+                <p className="text-xs text-muted mt-0.5">
+                  {form.metaTitle.length}/160
+                </p>
               </div>
               <div>
-                <label
-                  htmlFor="prod-meta-desc"
-                  className="block text-sm font-medium text-foreground mb-1"
-                >
+                <label htmlFor="prod-meta-desc" className={labelClass}>
                   Meta Description
                 </label>
                 <textarea
@@ -552,14 +742,17 @@ export default function AdminProductsPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, metaDescription: e.target.value }))
                   }
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  className={`${fieldClass} admin-textarea`}
                 />
+                <p className="text-xs text-muted mt-0.5">
+                  {form.metaDescription.length}/320
+                </p>
               </div>
             </div>
           </details>
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+            <p className="text-red-300 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl">
               {error}
             </p>
           )}
@@ -579,7 +772,7 @@ export default function AdminProductsPage() {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-6 py-2 border border-gray-200 rounded-lg text-sm text-foreground hover:bg-gray-50"
+              className="px-6 py-2 border border-gray-200 rounded-lg text-sm text-white/50 hover:bg-gray-50 hover:text-slate-900" 
             >
               Cancel
             </button>

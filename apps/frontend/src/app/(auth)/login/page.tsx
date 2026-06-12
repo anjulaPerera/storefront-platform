@@ -21,16 +21,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    try {
-      await login(email, password);
+async function handleSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  setError("");
+  try {
+    await login(email, password);
+
+    const { user } = useAuthStore.getState();
+    if (user?.role === "admin" || user?.role === "super_admin") {
+      router.push("/admin");
+    } else {
       router.push("/");
-    } catch {
-      setError("Invalid email or password. Please try again.");
     }
+  } catch {
+    setError("Invalid email or password. Please try again.");
   }
+}
 
   return (
     <div className="min-h-screen flex">

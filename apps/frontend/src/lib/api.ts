@@ -246,6 +246,21 @@ export const api = {
         body: JSON.stringify({ message, sessionId, history }),
         cache: "no-store",
       }),
+
+    generateProduct: (
+      productName: string,
+      externalLink?: string,
+      token?: string,
+    ) =>
+      apiFetch("/ai/generate-product", {
+        method: "POST",
+        body: JSON.stringify({
+          productName,
+          externalLink: externalLink || undefined,
+        }),
+        token,
+        cache: "no-store",
+      }),
   },
 
   // Config
