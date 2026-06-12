@@ -49,3 +49,26 @@ export async function getHistory(
     next(err);
   }
 }
+
+export async function generateProduct(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { productName, externalLink, categoryKey } = req.body as {
+      productName: string;
+      externalLink?: string;
+      categoryKey?: string;
+    };
+
+    const data = await svc.generateProductDescription(
+      productName,
+      externalLink,
+      categoryKey,
+    );
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}

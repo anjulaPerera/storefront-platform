@@ -6,23 +6,22 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "placehold.co" },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
+        hostname: "fdn2.gsmarena.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
   },
 
   async rewrites() {
-    // BACKEND_URL is a server-only env var (no NEXT_PUBLIC_ prefix).
-    // It is never exposed to the browser — it just tells Next.js where to
-    // forward /api/backend/* requests.
-    //
-    // In dev:  BACKEND_URL=http://127.0.0.1:4000
-    // In prod: BACKEND_URL=https://api.yourproductiondomain.com
-    //
-    // NEXT_PUBLIC_API_URL is intentionally NOT used here. That var is exposed
-    // to the browser, and if it were also used as the rewrite destination it
-    // would create a conflict where the browser calls the backend directly
-    // (cross-origin) and refresh-token cookies get silently dropped.
     const backendOrigin = (() => {
       const raw =
         process.env.BACKEND_URL ??

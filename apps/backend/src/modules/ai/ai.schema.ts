@@ -16,3 +16,12 @@ export const chatSchema = z.object({
       .default([]),
   }),
 });
+
+export const generateProductSchema = z.object({
+  body: z.object({
+    productName: z.string().min(1).max(200),
+    externalLink: z.string().url().optional(),
+    /** Optional: if provided the AI will also fill category-specific attributes */
+    categoryKey: z.string().max(100).optional(),
+  }),
+});

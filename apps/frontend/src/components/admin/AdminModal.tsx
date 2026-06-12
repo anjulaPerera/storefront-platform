@@ -35,16 +35,16 @@ export function AdminModal({
       aria-labelledby="modal-title"
     >
       <div
-        className={`relative bg-surface rounded-2xl shadow-xl w-full my-8 ${wide ? "max-w-3xl" : "max-w-lg"}`}
+        className={`relative bg-slate-800 rounded-2xl shadow-xl w-full my-8 ${wide ? "max-w-3xl" : "max-w-lg"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 id="modal-title" className="text-lg font-bold text-foreground">
+          <h2 id="modal-title" className="text-lg font-bold text-slate-200">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-muted hover:text-foreground transition-colors"
+            className="p-1 text-slate-100 hover:text-foreground transition-colors"
             aria-label="Close modal"
           >
             <svg

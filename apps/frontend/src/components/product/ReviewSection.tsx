@@ -55,7 +55,7 @@ export function ReviewSection({
   return (
     <section>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-foreground">
+        <h2 className="text-xl font-bold text-white/80">
           Customer Reviews ({reviews.length})
         </h2>
         {user && !showForm && (
