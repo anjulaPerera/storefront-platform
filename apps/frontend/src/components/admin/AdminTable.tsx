@@ -20,14 +20,14 @@ export function AdminTable<T>({
   empty = "No data",
 }: AdminTableProps<T>) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-100">
+    <div className="overflow-x-auto rounded-xl border border-gray-700">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50 border-b border-gray-100">
+          <tr className="bg-gray-700 border-b border-gray-700">
             {columns.map((col) => (
               <th
                 key={col.label}
-                className={`px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider ${col.width ?? ""}`}
+                className={`px-4 py-3 text-left text-xs font-semibold text-white/80 uppercase tracking-wider ${col.width ?? ""}`}
               >
                 {col.label}
               </th>
@@ -48,7 +48,7 @@ export function AdminTable<T>({
             rows.map((row) => (
               <tr
                 key={keyFn(row)}
-                className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                className="border-b border-gray-700 hover:bg-gray-800 transition-colors"
               >
                 {columns.map((col) => (
                   <td key={col.label} className="px-4 py-3">

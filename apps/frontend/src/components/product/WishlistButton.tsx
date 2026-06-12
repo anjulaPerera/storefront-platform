@@ -30,7 +30,7 @@ export function WishlistButton({ productId }: { productId: string }) {
       className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
         isWishlisted
           ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-          : "border-gray-200 text-foreground hover:border-primary hover:text-primary"
+          : "border-gray-600 text-white/60 hover:border-primary hover:text-primary"
       }`}
     >
       <svg
