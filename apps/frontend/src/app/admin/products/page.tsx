@@ -63,6 +63,8 @@ const EMPTY_FORM = {
   attributes: {} as Record<string, unknown>,
 };
 
+const PAGE_SIZE = 10;
+
 export default function AdminProductsPage() {
   const { accessToken } = useAuthStore();
   const { currencySymbol } = tenantConfig.identity;
@@ -72,6 +74,9 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Pagination
+  const [page, setPage] = useState(1);
 
   // AI generation state
   const [generating, setGenerating] = useState(false);
@@ -98,6 +103,17 @@ export default function AdminProductsPage() {
 
   const products = data?.products ?? [];
   const categories = data?.categories ?? [];
+
+  // Reset to page 1 whenever the product list reloads
+  useEffect(() => {
+    setPage(1);
+  }, [data]);
+
+  const totalPages = Math.ceil(products.length / PAGE_SIZE);
+  const visibleProducts = products.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  );
 
   function openCreate() {
     setEditing(null);
@@ -135,9 +151,6 @@ export default function AdminProductsPage() {
   }
 
   // ─── AI Generate handler ───────────────────────────────────────────────────
-  // Shared internal call — used by both the ✨ AI Fill button (description/SEO)
-  // and the AttributeEditor's onAIFill callback (specs).
-  // Returns the full GeneratedContent so callers can pick what they need.
 
   async function callGenerateProduct(
     categoryKey?: string,
@@ -153,8 +166,6 @@ export default function AdminProductsPage() {
     )) as GeneratedContent;
   }
 
-  // Triggered by the ✨ AI Fill button next to the product name field.
-  // Fills description + SEO fields and shows the preview panel.
   async function handleGenerate() {
     if (!form.name.trim()) {
       setGenerateError("Enter a product name first.");
@@ -187,8 +198,6 @@ export default function AdminProductsPage() {
     }
   }
 
-  // Passed to <AttributeEditor> as onAIFill.
-  // Returns just the attributes map so AttributeEditor can merge them.
   async function handleAttributeAIFill(): Promise<Record<
     string,
     string
@@ -281,98 +290,144 @@ export default function AdminProductsPage() {
       {loading ? (
         <div className="text-center py-12 text-muted">Loading…</div>
       ) : (
-        <AdminTable
-          rows={products}
-          keyFn={(p) => p.id}
-          empty="No products found"
-          columns={[
-            {
-              label: "Product",
-              render: (p) => (
-                <div className="flex items-center gap-3">
-                  {p.thumbnail ? (
-                    <Image
-                      src={p.thumbnail}
-                      alt={p.name}
-                      width={36}
-                      height={36}
-                      className="rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-lg bg-gray-100" />
-                  )}
-                  <div>
-                    <p className="font-medium text-white/70 text-sm">
-                      {p.name}
-                    </p>
-                    {p.brand && <p className="text-xs text-white/600">{p.brand}</p>}
+        <>
+          <AdminTable
+            rows={visibleProducts}
+            keyFn={(p) => p.id}
+            empty="No products found"
+            columns={[
+              {
+                label: "Product",
+                render: (p) => (
+                  <div className="flex items-center gap-3">
+                    {p.thumbnail ? (
+                      <Image
+                        src={p.thumbnail}
+                        alt={p.name}
+                        width={36}
+                        height={36}
+                        className="rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-lg bg-gray-100" />
+                    )}
+                    <div>
+                      <p className="font-medium text-white/70 text-sm">
+                        {p.name}
+                      </p>
+                      {p.brand && (
+                        <p className="text-xs text-white/600">{p.brand}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ),
-            },
-            {
-              label: "Price",
-              render: (p) => (
-                <span className="font-medium">
-                  {currencySymbol}
-                  {p.price.toLocaleString()}
-                </span>
-              ),
-              width: "w-28",
-            },
-            {
-              label: "Stock",
-              render: (p) => (
-                <span
-                  className={
-                    p.stockQuantity === 0 ? "text-red-600 font-medium" : ""
-                  }
+                ),
+              },
+              {
+                label: "Price",
+                render: (p) => (
+                  <span className="font-medium">
+                    {currencySymbol}
+                    {p.price.toLocaleString()}
+                  </span>
+                ),
+                width: "w-28",
+              },
+              {
+                label: "Stock",
+                render: (p) => (
+                  <span
+                    className={
+                      p.stockQuantity === 0 ? "text-red-600 font-medium" : ""
+                    }
+                  >
+                    {p.stockQuantity}
+                  </span>
+                ),
+                width: "w-20",
+              },
+              {
+                label: "Status",
+                render: (p) => (
+                  <div className="flex gap-1">
+                    <Badge variant={p.isActive ? "success" : "outline"}>
+                      {p.isActive ? "Active" : "Hidden"}
+                    </Badge>
+                    {p.isFeatured && <Badge variant="default">Featured</Badge>}
+                  </div>
+                ),
+                width: "w-36",
+              },
+              {
+                label: "Actions",
+                render: (p) => (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openEdit(p)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleToggle(p.id)}
+                      className="text-xs text-muted hover:text-foreground"
+                    >
+                      {p.isActive ? "Hide" : "Show"}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ),
+                width: "w-36",
+              },
+            ]}
+          />
+
+          {/* ─── Pagination ─────────────────────────────────────────────── */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 text-sm text-white/50">
+              <span>
+                Showing {(page - 1) * PAGE_SIZE + 1}–
+                {Math.min(page * PAGE_SIZE, products.length)} of{" "}
+                {products.length}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
-                  {p.stockQuantity}
-                </span>
-              ),
-              width: "w-20",
-            },
-            {
-              label: "Status",
-              render: (p) => (
-                <div className="flex gap-1">
-                  <Badge variant={p.isActive ? "success" : "outline"}>
-                    {p.isActive ? "Active" : "Hidden"}
-                  </Badge>
-                  {p.isFeatured && <Badge variant="default">Featured</Badge>}
-                </div>
-              ),
-              width: "w-36",
-            },
-            {
-              label: "Actions",
-              render: (p) => (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openEdit(p)}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleToggle(p.id)}
-                    className="text-xs text-muted hover:text-foreground"
-                  >
-                    {p.isActive ? "Hide" : "Show"}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="text-xs text-red-500 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ),
-              width: "w-36",
-            },
-          ]}
-        />
+                  ← Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (n) => (
+                    <button
+                      key={n}
+                      onClick={() => setPage(n)}
+                      className={`px-3 py-1.5 rounded-lg border transition-colors ${
+                        n === page
+                          ? "bg-primary border-primary text-white"
+                          : "border-white/10 hover:bg-white/5"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ),
+                )}
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <AdminModal
