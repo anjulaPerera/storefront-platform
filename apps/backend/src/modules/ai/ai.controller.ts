@@ -56,14 +56,16 @@ export async function generateProduct(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const { productName, externalLink } = req.body as {
+    const { productName, externalLink, categoryKey } = req.body as {
       productName: string;
       externalLink?: string;
+      categoryKey?: string;
     };
 
     const data = await svc.generateProductDescription(
       productName,
       externalLink,
+      categoryKey,
     );
     res.json({ success: true, data });
   } catch (err) {

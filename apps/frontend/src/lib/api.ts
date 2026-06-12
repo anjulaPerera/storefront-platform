@@ -251,12 +251,14 @@ export const api = {
       productName: string,
       externalLink?: string,
       token?: string,
+      categoryKey?: string,
     ) =>
       apiFetch("/ai/generate-product", {
         method: "POST",
         body: JSON.stringify({
           productName,
           externalLink: externalLink || undefined,
+          categoryKey: categoryKey || undefined,
         }),
         token,
         cache: "no-store",

@@ -43,6 +43,38 @@ export interface ProductDescriptionResult {
   metaTitle: string;
   metaDescription: string;
   keyFeatures: string[];
+  /** Category-specific attribute values keyed by attribute key */
+  attributes?: Record<string, string>;
+}
+
+// ─── Build the attribute schema hint for the AI prompt ───────────────────────
+
+function buildAttributeSchemaHint(categoryKey: string): {
+  schemaText: string;
+  exampleJson: string;
+} {
+  const category = tenantConfig.productTaxonomy.categories.find(
+    (c) => c.key === categoryKey,
+  );
+
+  if (!category) return { schemaText: "", exampleJson: "" };
+
+  const lines = category.attributes.map((attr) => {
+    const optionsHint =
+      attr.type === "select" && attr.options?.length
+        ? ` — must be one of: ${attr.options.map((o) => `"${o}"`).join(", ")}`
+        : attr.type === "number"
+          ? ` — numeric value only (no unit suffix)`
+          : "";
+    return `  "${attr.key}": "<${attr.label}${attr.unit ? ` in ${attr.unit}` : ""}>${optionsHint}"`;
+  });
+
+  const exampleKeys = category.attributes.map((attr) => `"${attr.key}": ""`);
+
+  return {
+    schemaText: `\n\nFor the "${category.label}" category, also return an "attributes" object with these keys:\n{\n${lines.join(",\n")}\n}`,
+    exampleJson: `"attributes": { ${exampleKeys.join(", ")} }`,
+  };
 }
 
 // ─── Product context injection (RAG-lite) ─────────────────────────────────────
@@ -156,18 +188,28 @@ async function generateWithFallback(
   throw lastError;
 }
 
-// ─── Product description generator ───────────────────────────────────────────
+// ─── Product description + attribute generator ────────────────────────────────
 
 export async function generateProductDescription(
   productName: string,
   externalLink?: string,
+  categoryKey?: string,
 ): Promise<ProductDescriptionResult> {
   const client = getClient();
+
+  // Build the extra attribute section of the prompt when a category is known
+  const { schemaText, exampleJson } = categoryKey
+    ? buildAttributeSchemaHint(categoryKey)
+    : { schemaText: "", exampleJson: "" };
+
+  const attributesField = categoryKey
+    ? `,\n  "attributes": { /* keys listed above */ }`
+    : "";
 
   const prompt = `You are an expert ecommerce copywriter and SEO specialist.
 
 Generate compelling product content for: "${productName}"
-${externalLink ? `\nReference specification URL: ${externalLink}\nPlease use this URL to get accurate specs.` : ""}
+${externalLink ? `\nReference specification URL: ${externalLink}\nPlease use this URL to get accurate specs.` : ""}${schemaText}
 
 Search the web for current specifications, features, and information about this product.
 
@@ -183,8 +225,10 @@ Return ONLY valid JSON with no markdown formatting, no code fences, no extra tex
     "Feature with spec detail",
     "Feature with spec detail",
     "Feature with spec detail"
-  ]
-}`;
+  ]${attributesField}
+}
+
+${categoryKey ? `For the attributes object, use the exact keys listed above and accurate real-world values for this product. Example shape: { ${exampleJson} }` : ""}`;
 
   let lastError: unknown;
 
@@ -233,7 +277,10 @@ Return ONLY valid JSON with no markdown formatting, no code fences, no extra tex
     }
   }
 
-  throw lastError ?? new Error("All models failed for product description generation");
+  throw (
+    lastError ??
+    new Error("All models failed for product description generation")
+  );
 }
 
 // ─── Conversation persistence ─────────────────────────────────────────────────
@@ -298,7 +345,9 @@ export async function getSessionHistory(
   );
 
   return (rows as Record<string, unknown>[]).map((r) => ({
-    role: (r.role === "assistant" ? "assistant" : "user") as ChatMessage["role"],
+    role: (r.role === "assistant"
+      ? "assistant"
+      : "user") as ChatMessage["role"],
     content: r.content as string,
   }));
 }

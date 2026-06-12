@@ -43,6 +43,7 @@ interface GeneratedContent {
   metaTitle: string;
   metaDescription: string;
   keyFeatures: string[];
+  attributes?: Record<string, string>;
 }
 
 const EMPTY_FORM = {
@@ -134,13 +135,31 @@ export default function AdminProductsPage() {
   }
 
   // ─── AI Generate handler ───────────────────────────────────────────────────
+  // Shared internal call — used by both the ✨ AI Fill button (description/SEO)
+  // and the AttributeEditor's onAIFill callback (specs).
+  // Returns the full GeneratedContent so callers can pick what they need.
 
+  async function callGenerateProduct(
+    categoryKey?: string,
+  ): Promise<GeneratedContent> {
+    if (!form.name.trim()) throw new Error("Enter a product name first.");
+    if (!accessToken) throw new Error("Not authenticated.");
+
+    return (await api.ai.generateProduct(
+      form.name.trim(),
+      form.externalLink || undefined,
+      accessToken,
+      categoryKey,
+    )) as GeneratedContent;
+  }
+
+  // Triggered by the ✨ AI Fill button next to the product name field.
+  // Fills description + SEO fields and shows the preview panel.
   async function handleGenerate() {
     if (!form.name.trim()) {
       setGenerateError("Enter a product name first.");
       return;
     }
-    if (!accessToken) return;
 
     setGenerating(true);
     setGenerateError("");
@@ -148,12 +167,9 @@ export default function AdminProductsPage() {
     setShowPreview(false);
 
     try {
-      const result = (await api.ai.generateProduct(
-        form.name.trim(),
-        form.externalLink || undefined,
-        accessToken,
-      )) as GeneratedContent;
-
+      const result = await callGenerateProduct(
+        selectedCategoryKey || undefined,
+      );
       setGeneratedPreview(result);
       setShowPreview(true);
     } catch (err) {
@@ -169,6 +185,17 @@ export default function AdminProductsPage() {
     } finally {
       setGenerating(false);
     }
+  }
+
+  // Passed to <AttributeEditor> as onAIFill.
+  // Returns just the attributes map so AttributeEditor can merge them.
+  async function handleAttributeAIFill(): Promise<Record<
+    string,
+    string
+  > | null> {
+    if (!form.name.trim()) throw new Error("Enter a product name first.");
+    const result = await callGenerateProduct(selectedCategoryKey || undefined);
+    return result.attributes ?? null;
   }
 
   function applyGenerated() {
@@ -278,7 +305,7 @@ export default function AdminProductsPage() {
                     <p className="font-medium text-white/70 text-sm">
                       {p.name}
                     </p>
-                    {p.brand && <p className="text-xs text-muted">{p.brand}</p>}
+                    {p.brand && <p className="text-xs text-white/600">{p.brand}</p>}
                   </div>
                 </div>
               ),
@@ -618,7 +645,6 @@ export default function AdminProductsPage() {
 
           {/* ─── Thumbnail upload + External Link ─────────────────────────── */}
           <div className="grid grid-cols-2 gap-4 items-start">
-            {/* Cloudinary image upload — spans full width on its own row */}
             <div className="col-span-2">
               <ImageUpload
                 label="Product Thumbnail"
@@ -627,7 +653,6 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            {/* External Spec Link */}
             <div className="col-span-2">
               <label htmlFor="prod-ext" className={labelClass}>
                 External Spec Link
@@ -690,6 +715,7 @@ export default function AdminProductsPage() {
                 onChange={(attrs) =>
                   setForm((f) => ({ ...f, attributes: attrs }))
                 }
+                onAIFill={handleAttributeAIFill}
               />
             </div>
           )}
