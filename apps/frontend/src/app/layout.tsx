@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { Syne, Manrope } from "next/font/google";
 import { tenantConfig } from "@storefront/config";
 import { AppProviders } from "@/components/providers/AppProviders";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { TopStrip } from "@/components/layout/TopStrip";
-import { ChatWidget } from "@/components/ai/ChatWidget";
+// import { Navbar } from "@/components/layout/Navbar";
+// import { Footer } from "@/components/layout/Footer";
+// import { TopStrip } from "@/components/layout/TopStrip";
+// import { ChatWidget } from "@/components/ai/ChatWidget";
+import { ShopShell } from "@/components/layout/ShopShell";
 import "@/app/globals.css";
 
 const syne = Syne({
@@ -46,7 +47,7 @@ export default function RootLayout({
       className={`${syne.variable} ${manrope.variable}`}
       suppressHydrationWarning
     >
-      <body className="noise-overlay">
+      {/* <body className="noise-overlay">
         <AppProviders>
           <TopStrip />
           <Navbar />
@@ -54,6 +55,14 @@ export default function RootLayout({
           <Footer />
           <ChatWidget />
         </AppProviders>
+      </body> */}
+      <body className="noise-overlay">
+        {/* <AppProviders>
+          <ShopShell>{children}</ShopShell>
+        </AppProviders> */}
+        <ShopShell>
+          <AppProviders>{children}</AppProviders>
+        </ShopShell>
       </body>
     </html>
   );

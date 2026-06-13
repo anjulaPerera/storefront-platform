@@ -1,6 +1,6 @@
 "use client";
 
-import {  useState } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
@@ -43,14 +43,14 @@ export default function AdminBannersPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-const {
-  data: banners = [], // default to [] so .map() never breaks
-  loading,
-  reload, 
-} = useAdminData(
-  (token) => api.admin.listAllBanners(token) as Promise<Banner[]>,
-  accessToken,
-);
+  const {
+    data: banners = [],
+    loading,
+    reload,
+  } = useAdminData(
+    (token) => api.admin.listAllBanners(token) as Promise<Banner[]>,
+    accessToken,
+  );
 
   function openCreate() {
     setEditing(null);
@@ -76,6 +76,7 @@ const {
     setError("");
     setShowForm(true);
   }
+
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -114,10 +115,14 @@ const {
     await reload();
   }
 
+  const fieldClass = "admin-field";
+  const selectClass = "admin-field admin-select";
+  const labelClass = "admin-label";
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Banners</h1>
+        <h1 className="text-2xl font-bold text-white/80">Banners</h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
@@ -154,7 +159,7 @@ const {
               render: (b) => (
                 <div className="flex items-center gap-2">
                   <span
-                    className="w-5 h-5 rounded border border-gray-200 flex-shrink-0"
+                    className="w-5 h-5 rounded border border-white/10 flex-shrink-0"
                     style={{ backgroundColor: b.backgroundColour ?? "#fff" }}
                   />
                   <span className="text-xs text-muted">
@@ -203,13 +208,14 @@ const {
         onClose={() => setShowForm(false)}
         wide
       >
-        <form onSubmit={handleSave} className="space-y-4">
+        <form
+          onSubmit={handleSave}
+          className="space-y-6 max-h-[72vh] overflow-y-auto pr-2"
+        >
+          {/* Type + Sort Order */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="ban-type"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="ban-type" className={labelClass}>
                 Type *
               </label>
               <select
@@ -218,7 +224,7 @@ const {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, type: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={selectClass}
               >
                 <option value="top_strip">Top Strip</option>
                 <option value="hero">Hero</option>
@@ -226,10 +232,7 @@ const {
               </select>
             </div>
             <div>
-              <label
-                htmlFor="ban-sort"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="ban-sort" className={labelClass}>
                 Sort Order
               </label>
               <input
@@ -240,35 +243,33 @@ const {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, sortOrder: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
               />
             </div>
           </div>
+
+          {/* Content */}
           <div>
-            <label
-              htmlFor="ban-content"
-              className="block text-sm font-medium text-foreground mb-1"
-            >
+            <label htmlFor="ban-content" className={labelClass}>
               Content * (HTML supported)
             </label>
             <textarea
               id="ban-content"
               required
-              rows={2}
+              rows={3}
               value={form.content}
               onChange={(e) =>
                 setForm((f) => ({ ...f, content: e.target.value }))
               }
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className={`${fieldClass} admin-textarea`}
               placeholder="e.g. New iPhone arrives next month! <strong>Limited stock.</strong>"
             />
           </div>
+
+          {/* Link URL + Link Text */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="ban-link"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="ban-link" className={labelClass}>
                 Link URL
               </label>
               <input
@@ -278,15 +279,12 @@ const {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, linkUrl: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
                 placeholder="https://…"
               />
             </div>
             <div>
-              <label
-                htmlFor="ban-link-text"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="ban-link-text" className={labelClass}>
                 Link Text
               </label>
               <input
@@ -295,17 +293,16 @@ const {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, linkText: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
                 placeholder="Shop Now"
               />
             </div>
           </div>
+
+          {/* Colours */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="ban-bg"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="ban-bg" className={labelClass}>
                 Background Colour
               </label>
               <div className="flex items-center gap-2">
@@ -314,27 +311,30 @@ const {
                   id="ban-bg"
                   value={form.backgroundColour}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, backgroundColour: e.target.value }))
+                    setForm((f) => ({
+                      ...f,
+                      backgroundColour: e.target.value,
+                    }))
                   }
-                  className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer"
+                  className="w-10 h-[48px] rounded-xl border border-white/10 cursor-pointer bg-transparent flex-shrink-0"
                 />
                 <input
                   type="text"
                   value={form.backgroundColour}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, backgroundColour: e.target.value }))
+                    setForm((f) => ({
+                      ...f,
+                      backgroundColour: e.target.value,
+                    }))
                   }
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={fieldClass}
                   pattern="^#[0-9A-Fa-f]{6}$"
                   aria-label="Background colour hex code"
                 />
               </div>
             </div>
             <div>
-              <label
-                htmlFor="ban-text-col"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="ban-text-col" className={labelClass}>
                 Text Colour
               </label>
               <div className="flex items-center gap-2">
@@ -345,7 +345,7 @@ const {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, textColour: e.target.value }))
                   }
-                  className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer"
+                  className="w-10 h-[48px] rounded-xl border border-white/10 cursor-pointer bg-transparent flex-shrink-0"
                 />
                 <input
                   type="text"
@@ -353,19 +353,18 @@ const {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, textColour: e.target.value }))
                   }
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={fieldClass}
                   pattern="^#[0-9A-Fa-f]{6}$"
                   aria-label="Text colour hex code"
                 />
               </div>
             </div>
           </div>
+
+          {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="ban-start"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="ban-start" className={labelClass}>
                 Start Date
               </label>
               <input
@@ -375,14 +374,11 @@ const {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, startsAt: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
               />
             </div>
             <div>
-              <label
-                htmlFor="ban-end"
-                className="block text-sm font-medium text-foreground mb-1"
-              >
+              <label htmlFor="ban-end" className={labelClass}>
                 End Date
               </label>
               <input
@@ -392,27 +388,32 @@ const {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, endsAt: e.target.value }))
                 }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className={fieldClass}
               />
             </div>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              id="ban-active"
-              checked={form.isActive}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, isActive: e.target.checked }))
-              }
-              className="w-4 h-4 text-primary border-gray-300 rounded"
-            />
-            <span className="text-sm text-foreground">Active</span>
-          </label>
+
+          {/* Active toggle */}
+          <div className="flex gap-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                id="ban-active"
+                checked={form.isActive}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, isActive: e.target.checked }))
+                }
+                className="w-4 h-4 text-primary border-gray-300 rounded"
+              />
+              <span className="text-sm text-white/50">Active (visible)</span>
+            </label>
+          </div>
+
           {/* Preview */}
           <div>
-            <p className="text-xs text-muted mb-1">Preview:</p>
+            <p className={labelClass}>Preview</p>
             <div
-              className="py-2 px-4 text-center text-sm rounded-lg"
+              className="py-3 px-5 text-center text-sm rounded-2xl border border-white/10"
               style={{
                 backgroundColor: form.backgroundColour,
                 color: form.textColour,
@@ -425,23 +426,25 @@ const {
               />
             </div>
           </div>
+
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+            <p className="text-red-300 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl">
               {error}
             </p>
           )}
+
           <div className="flex gap-3 pt-2">
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark disabled:opacity-60"
+              className="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark disabled:opacity-60 transition-colors"
             >
-              {saving ? "Saving…" : editing ? "Update" : "Create"}
+              {saving ? "Saving…" : editing ? "Update Banner" : "Create Banner"}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-6 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+              className="px-6 py-2 border border-gray-200 rounded-lg text-sm text-white/50 hover:bg-gray-50 hover:text-slate-900"
             >
               Cancel
             </button>
