@@ -118,7 +118,7 @@ const {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Categories</h1>
+        <h1 className="text-2xl font-bold text-white/80">Categories</h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
@@ -143,7 +143,7 @@ const {
                   className="flex items-center gap-2"
                 >
                   {c.depth > 0 && <span className="text-gray-300">└</span>}
-                  <span className="font-medium text-foreground">{c.name}</span>
+                  <span className="font-medium text-white/80">{c.name}</span>
                 </span>
               ),
             },
