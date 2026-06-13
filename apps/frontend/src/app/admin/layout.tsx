@@ -59,7 +59,6 @@ export default function AdminLayout({
   const { user, isHydrated } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Guard — redirect non-admins away
   useEffect(() => {
     if (!isHydrated) return;
     if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -80,7 +79,8 @@ export default function AdminLayout({
   }
 
   const renderSidebar = () => (
-    <aside className="flex flex-col w-56 bg-gray-950 border-r border-white/5 min-h-screen flex-shrink-0">
+    // h-full — never exceeds the fixed viewport container
+    <aside className="flex flex-col w-56 bg-gray-950 border-r border-white/5 h-full flex-shrink-0">
       {/* Brand */}
       <div className="px-4 py-5 border-b border-white/5">
         <p className="font-display font-bold text-sm text-white">
@@ -90,7 +90,7 @@ export default function AdminLayout({
       </div>
 
       {/* Nav links */}
-      <nav className="flex-1 px-2 py-4 space-y-0.5">
+      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
         {NAV.map(({ href, label, icon }) => {
           const active =
             href === "/admin"
@@ -153,14 +153,16 @@ export default function AdminLayout({
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-space-1">
+    // fixed inset-0 pins the admin shell to the viewport, overriding the
+    // root layout's scrolling <body> which also renders Navbar/Footer.
+    <div className="fixed inset-0 flex bg-space-1 overflow-hidden">
       {/* Desktop sidebar */}
-      <div className="hidden md:flex">{renderSidebar()}</div>
+      <div className="hidden md:flex h-full">{renderSidebar()}</div>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="flex-shrink-0">{renderSidebar()}</div>
+          <div className="flex-shrink-0 h-full">{renderSidebar()}</div>
           <button
             className="flex-1 bg-black/60"
             onClick={() => setSidebarOpen(false)}
@@ -169,7 +171,7 @@ export default function AdminLayout({
         </div>
       )}
 
-      {/* Main area */}
+      {/* Main area — only this scrolls */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile top bar */}
         <header className="bg-gray-950 border-b border-white/5 px-4 py-3 flex items-center gap-3 md:hidden">
