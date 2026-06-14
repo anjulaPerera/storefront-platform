@@ -6,7 +6,7 @@ import { AppProviders } from "@/components/providers/AppProviders";
 // import { Footer } from "@/components/layout/Footer";
 // import { TopStrip } from "@/components/layout/TopStrip";
 // import { ChatWidget } from "@/components/ai/ChatWidget";
-import { ShopShell } from "@/components/layout/ShopShell";
+// import { ShopShell } from "@/components/layout/ShopShell";
 import "@/app/globals.css";
 
 const syne = Syne({
@@ -57,12 +57,7 @@ export default function RootLayout({
         </AppProviders>
       </body> */}
       <body className="noise-overlay">
-        {/* <AppProviders>
-          <ShopShell>{children}</ShopShell>
-        </AppProviders> */}
-        <ShopShell>
-          <AppProviders>{children}</AppProviders>
-        </ShopShell>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
