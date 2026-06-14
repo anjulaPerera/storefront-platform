@@ -8,10 +8,33 @@ import { api, ApiError } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AttributeEditor } from "@/components/admin/AttributeEditor";
-// import { ImageUpload } from "../ImageUpload";
 import { SmartImageUpload } from "../SmartImageUpload";
 import { Badge } from "@/components/ui/Badge";
 import { useAdminData } from "@/hooks/useAdminData";
+
+// ─── Recent product names cache ──────────────────────────────────────────────
+const CACHE_KEY = "admin_recent_products";
+
+function getCachedNames(): string[] {
+  try {
+    return JSON.parse(sessionStorage.getItem(CACHE_KEY) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+function addToCache(name: string) {
+  if (!name.trim()) return;
+  try {
+    const prev = getCachedNames().filter((n) => n !== name);
+    sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify([name, ...prev].slice(0, 20)),
+    );
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
 
 interface Product {
   id: string;
@@ -56,6 +79,7 @@ const EMPTY_FORM = {
   sku: "",
   brand: "",
   thumbnail: "",
+  images: [] as string[],
   externalLink: "",
   isFeatured: false,
   isActive: true,
@@ -86,6 +110,10 @@ export default function AdminProductsPage() {
     useState<GeneratedContent | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSug, setShowSug] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "new") {
@@ -105,7 +133,6 @@ export default function AdminProductsPage() {
   const products = data?.products ?? [];
   const categories = data?.categories ?? [];
 
-  // Reset to page 1 whenever the product list reloads
   useEffect(() => {
     setPage(1);
   }, [data]);
@@ -137,6 +164,7 @@ export default function AdminProductsPage() {
       sku: p.sku ?? "",
       brand: p.brand ?? "",
       thumbnail: p.thumbnail ?? "",
+      images: p.thumbnail ? [p.thumbnail] : [],
       externalLink: p.externalLink ?? "",
       isFeatured: p.isFeatured,
       isActive: p.isActive,
@@ -150,8 +178,6 @@ export default function AdminProductsPage() {
     setShowPreview(false);
     setShowForm(true);
   }
-
-  // ─── AI Generate handler ───────────────────────────────────────────────────
 
   async function callGenerateProduct(
     categoryKey?: string,
@@ -220,8 +246,6 @@ export default function AdminProductsPage() {
     setGeneratedPreview(null);
   }
 
-  // ─── Save ─────────────────────────────────────────────────────────────────
-
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!accessToken) return;
@@ -235,7 +259,7 @@ export default function AdminProductsPage() {
       stockQuantity: parseInt(form.stockQuantity, 10),
       sku: form.sku || null,
       brand: form.brand || null,
-      thumbnail: form.thumbnail || null,
+      thumbnail: form.images[0] || form.thumbnail || null,
       externalLink: form.externalLink || null,
       isFeatured: form.isFeatured,
       isActive: form.isActive,
@@ -246,8 +270,10 @@ export default function AdminProductsPage() {
     try {
       if (editing) {
         await api.admin.updateProduct(editing.id, payload, accessToken);
+        addToCache(form.name);
       } else {
         await api.admin.createProduct(payload, accessToken);
+        addToCache(form.name);
       }
       setShowForm(false);
       await reload();
@@ -387,7 +413,6 @@ export default function AdminProductsPage() {
             ]}
           />
 
-          {/* ─── Pagination ─────────────────────────────────────────────── */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 text-sm text-white/50">
               <span>
@@ -441,7 +466,6 @@ export default function AdminProductsPage() {
           onSubmit={handleSave}
           className="space-y-6 max-h-[72vh] overflow-y-auto pr-2"
         >
-          {/* Category */}
           <div>
             <label htmlFor="prod-cat" className={labelClass}>
               Category *
@@ -471,33 +495,79 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Name + AI button */}
             <div className="col-span-2">
               <label htmlFor="prod-name" className={labelClass}>
                 Product Name *
               </label>
               <div className="flex gap-2 items-start">
-                <input
-                  id="prod-name"
-                  required
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  className={`${fieldClass} flex-1`}
-                  placeholder="e.g. Samsung Galaxy S25 Ultra"
-                />
+                <div className="relative flex-1">
+                  <input
+                    id="prod-name"
+                    required
+                    value={form.name}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm((f) => ({ ...f, name: val }));
+                      if (val.length > 1) {
+                        const matches = getCachedNames().filter((n) =>
+                          n.toLowerCase().includes(val.toLowerCase()),
+                        );
+                        setSuggestions(matches);
+                        setShowSug(matches.length > 0);
+                      } else {
+                        setShowSug(false);
+                      }
+                    }}
+                    onBlur={() => setTimeout(() => setShowSug(false), 150)}
+                    onFocus={() => {
+                      if (form.name.length > 1) {
+                        const matches = getCachedNames().filter((n) =>
+                          n.toLowerCase().includes(form.name.toLowerCase()),
+                        );
+                        setShowSug(matches.length > 0);
+                        setSuggestions(matches);
+                      }
+                    }}
+                    className={`${fieldClass} w-full`}
+                    placeholder="e.g. Samsung Galaxy S25 Ultra"
+                    autoComplete="off"
+                  />
+                  {showSug && (
+                    <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl border border-white/10 bg-gray-950 shadow-xl overflow-hidden">
+                      {suggestions.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onMouseDown={() => {
+                            setForm((f) => ({ ...f, name: s }));
+                            setShowSug(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                        >
+                          <svg
+                            className="w-3.5 h-3.5 text-white/30 flex-shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={handleGenerate}
                   disabled={generating || !form.name.trim()}
-                  title="Generate description, SEO fields, and key features with AI"
-                  className="
-                    flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
-                    bg-violet-600 hover:bg-violet-700 text-white
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                    transition-colors whitespace-nowrap flex-shrink-0
-                  "
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex-shrink-0"
                 >
                   {generating ? (
                     <>
@@ -524,8 +594,7 @@ export default function AdminProductsPage() {
                     </>
                   ) : (
                     <>
-                      <span>✨</span>
-                      AI Fill
+                      <span>✨</span>AI Fill
                     </>
                   )}
                 </button>
@@ -535,7 +604,6 @@ export default function AdminProductsPage() {
               )}
             </div>
 
-            {/* Price */}
             <div>
               <label htmlFor="prod-price" className={labelClass}>
                 Price ({currencySymbol}) *
@@ -554,7 +622,6 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            {/* Stock */}
             <div>
               <label htmlFor="prod-stock" className={labelClass}>
                 Stock Quantity
@@ -571,7 +638,6 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            {/* Brand */}
             <div>
               <label htmlFor="prod-brand" className={labelClass}>
                 Brand
@@ -586,7 +652,6 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            {/* SKU */}
             <div>
               <label htmlFor="prod-sku" className={labelClass}>
                 SKU
@@ -602,7 +667,6 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="prod-desc" className={labelClass}>
@@ -626,7 +690,6 @@ export default function AdminProductsPage() {
             />
           </div>
 
-          {/* ─── AI Preview Panel ─────────────────────────────────────────── */}
           {showPreview && generatedPreview && (
             <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -699,13 +762,18 @@ export default function AdminProductsPage() {
             </div>
           )}
 
-          {/* ─── Thumbnail upload + External Link ─────────────────────────── */}
           <div className="grid grid-cols-2 gap-4 items-start">
             <div className="col-span-2">
               <SmartImageUpload
-                label="Product Thumbnail"
-                value={form.thumbnail}
-                onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))}
+                label="Product Images"
+                values={form.images}
+                onChange={(urls) =>
+                  setForm((f) => ({
+                    ...f,
+                    images: urls,
+                    thumbnail: urls[0] ?? "",
+                  }))
+                }
               />
             </div>
 
@@ -729,7 +797,6 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          {/* Toggles */}
           <div className="flex gap-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -759,7 +826,6 @@ export default function AdminProductsPage() {
             </label>
           </div>
 
-          {/* Dynamic attributes */}
           {selectedCategoryKey && (
             <div>
               <p className="text-sm font-medium text-foreground mb-3">
@@ -776,7 +842,6 @@ export default function AdminProductsPage() {
             </div>
           )}
 
-          {/* SEO */}
           <details className="text-sm" open={!!form.metaTitle}>
             <summary className="cursor-pointer font-medium text-muted hover:text-foreground">
               SEO (optional)
