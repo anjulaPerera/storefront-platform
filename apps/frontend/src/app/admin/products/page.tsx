@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { useAuthStore } from "@/store/auth.store";
 import { api, ApiError } from "@/lib/api";
@@ -12,29 +12,7 @@ import { SmartImageUpload } from "../SmartImageUpload";
 import { Badge } from "@/components/ui/Badge";
 import { useAdminData } from "@/hooks/useAdminData";
 
-// ─── Recent product names cache ──────────────────────────────────────────────
-const CACHE_KEY = "admin_recent_products";
-
-function getCachedNames(): string[] {
-  try {
-    return JSON.parse(sessionStorage.getItem(CACHE_KEY) ?? "[]") as string[];
-  } catch {
-    return [];
-  }
-}
-
-function addToCache(name: string) {
-  if (!name.trim()) return;
-  try {
-    const prev = getCachedNames().filter((n) => n !== name);
-    sessionStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify([name, ...prev].slice(0, 20)),
-    );
-  } catch {
-    /* quota exceeded — ignore */
-  }
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Product {
   id: string;
@@ -44,6 +22,7 @@ interface Product {
   stockQuantity: number;
   brand: string | null;
   thumbnail: string | null;
+  images?: string[];
   isActive: boolean;
   isFeatured: boolean;
   categoryId: string;
@@ -54,6 +33,7 @@ interface Product {
   metaTitle: string | null;
   metaDescription: string | null;
   attributes: Record<string, unknown>;
+  updatedAt: string;
 }
 
 interface Category {
@@ -69,6 +49,8 @@ interface GeneratedContent {
   keyFeatures: string[];
   attributes?: Record<string, string>;
 }
+
+// ─── Form ─────────────────────────────────────────────────────────────────────
 
 const EMPTY_FORM = {
   categoryId: "",
@@ -88,7 +70,37 @@ const EMPTY_FORM = {
   attributes: {} as Record<string, unknown>,
 };
 
+// ─── Lookup helpers ───────────────────────────────────────────────────────────
+
+function normalize(s: string) {
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** 3 = exact · 2 = starts-with · 1 = contains · 0 = no match */
+function matchScore(query: string, name: string): number {
+  const q = normalize(query);
+  const n = normalize(name);
+  if (!q || q.length < 2) return 0;
+  if (n === q) return 3;
+  if (n.startsWith(q)) return 2;
+  if (n.includes(q)) return 1;
+  return 0;
+}
+
+function timeAgo(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const m = Math.floor(days / 30);
+  return m === 1 ? "1 month ago" : `${m} months ago`;
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const PAGE_SIZE = 10;
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminProductsPage() {
   const { accessToken } = useAuthStore();
@@ -103,23 +115,26 @@ export default function AdminProductsPage() {
   // Pagination
   const [page, setPage] = useState(1);
 
-  // AI generation state
+  // AI generation
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [generatedPreview, setGeneratedPreview] =
     useState<GeneratedContent | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  // Autocomplete state
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSug, setShowSug] = useState(false);
+  // Product name lookup
+  const [matchedProduct, setMatchedProduct] = useState<Product | null>(null);
+  const [lookupDismissed, setLookupDismissed] = useState(false);
+  const prevName = useRef("");
+
+  // ─── Bootstrap ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("action") === "new") {
-      setShowForm(true);
-    }
+    if (params.get("action") === "new") setShowForm(true);
   }, []);
+
+  // ─── Data ────────────────────────────────────────────────────────────────────
 
   const { data, loading, reload } = useAdminData(
     (token) =>
@@ -143,6 +158,65 @@ export default function AdminProductsPage() {
     page * PAGE_SIZE,
   );
 
+  // ─── Name lookup — runs on every form.name change (only when creating) ──────
+
+  useEffect(() => {
+    // Re-enable card whenever the name changes after a dismissal
+    if (form.name !== prevName.current) {
+      setLookupDismissed(false);
+      prevName.current = form.name;
+    }
+
+    // Never show lookup when editing an existing product
+    if (editing || lookupDismissed) {
+      setMatchedProduct(null);
+      return;
+    }
+
+    const best = products
+      .map((p) => ({ p, score: matchScore(form.name, p.name) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)[0];
+
+    setMatchedProduct(best?.p ?? null);
+  }, [form.name, products, editing, lookupDismissed]);
+
+  // ─── Lookup actions ──────────────────────────────────────────────────────────
+
+  function handleLookupEdit(product: Product) {
+    // Switch to edit mode for this product — same as clicking Edit in the table
+    openEdit(product);
+    setLookupDismissed(true);
+  }
+
+  function handleLookupDuplicate(product: Product) {
+    setEditing(null);
+    setForm({
+      categoryId: product.categoryId,
+      name: product.name, // user can rename before saving
+      description: product.description ?? "",
+      price: String(product.price),
+      stockQuantity: String(product.stockQuantity),
+      sku: "", // SKU must be unique — leave blank
+      brand: product.brand ?? "",
+      thumbnail: product.thumbnail ?? "",
+      images: product.images ?? [],
+      externalLink: product.externalLink ?? "",
+      isFeatured: false, // don't carry over featured flag
+      isActive: true,
+      metaTitle: product.metaTitle ?? "",
+      metaDescription: product.metaDescription ?? "",
+      attributes: product.attributes,
+    });
+    setLookupDismissed(true);
+    setError("");
+    setGenerateError("");
+    setGeneratedPreview(null);
+    setShowPreview(false);
+  }
+
+  // ─── Form open/close ─────────────────────────────────────────────────────────
+
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM);
@@ -150,6 +224,8 @@ export default function AdminProductsPage() {
     setGenerateError("");
     setGeneratedPreview(null);
     setShowPreview(false);
+    setMatchedProduct(null);
+    setLookupDismissed(false);
     setShowForm(true);
   }
 
@@ -164,7 +240,7 @@ export default function AdminProductsPage() {
       sku: p.sku ?? "",
       brand: p.brand ?? "",
       thumbnail: p.thumbnail ?? "",
-      images: p.thumbnail ? [p.thumbnail] : [],
+      images: p.images ?? (p.thumbnail ? [p.thumbnail] : []),
       externalLink: p.externalLink ?? "",
       isFeatured: p.isFeatured,
       isActive: p.isActive,
@@ -176,15 +252,18 @@ export default function AdminProductsPage() {
     setGenerateError("");
     setGeneratedPreview(null);
     setShowPreview(false);
+    setMatchedProduct(null);
+    setLookupDismissed(true); // never show lookup in edit mode
     setShowForm(true);
   }
+
+  // ─── AI generation ───────────────────────────────────────────────────────────
 
   async function callGenerateProduct(
     categoryKey?: string,
   ): Promise<GeneratedContent> {
     if (!form.name.trim()) throw new Error("Enter a product name first.");
     if (!accessToken) throw new Error("Not authenticated.");
-
     return (await api.ai.generateProduct(
       form.name.trim(),
       form.externalLink || undefined,
@@ -198,12 +277,10 @@ export default function AdminProductsPage() {
       setGenerateError("Enter a product name first.");
       return;
     }
-
     setGenerating(true);
     setGenerateError("");
     setGeneratedPreview(null);
     setShowPreview(false);
-
     try {
       const result = await callGenerateProduct(
         selectedCategoryKey || undefined,
@@ -246,6 +323,8 @@ export default function AdminProductsPage() {
     setGeneratedPreview(null);
   }
 
+  // ─── Save ────────────────────────────────────────────────────────────────────
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!accessToken) return;
@@ -270,10 +349,8 @@ export default function AdminProductsPage() {
     try {
       if (editing) {
         await api.admin.updateProduct(editing.id, payload, accessToken);
-        addToCache(form.name);
       } else {
         await api.admin.createProduct(payload, accessToken);
-        addToCache(form.name);
       }
       setShowForm(false);
       await reload();
@@ -282,6 +359,8 @@ export default function AdminProductsPage() {
     }
     setSaving(false);
   }
+
+  // ─── Table actions ───────────────────────────────────────────────────────────
 
   async function handleToggle(id: string) {
     if (!accessToken) return;
@@ -295,12 +374,19 @@ export default function AdminProductsPage() {
     await reload();
   }
 
+  // ─── Derived ─────────────────────────────────────────────────────────────────
+
   const selectedCategoryKey =
     categories.find((c) => c.id === form.categoryId)?.slug ?? "";
 
   const fieldClass = "admin-field";
   const selectClass = "admin-field admin-select";
   const labelClass = "admin-label";
+
+  // Only show the lookup card when creating (not editing) and there's a match
+  const showLookupCard = !editing && !!matchedProduct && !lookupDismissed;
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div>
@@ -314,6 +400,7 @@ export default function AdminProductsPage() {
         </button>
       </div>
 
+      {/* ── Table ── */}
       {loading ? (
         <div className="text-center py-12 text-muted">Loading…</div>
       ) : (
@@ -456,6 +543,7 @@ export default function AdminProductsPage() {
         </>
       )}
 
+      {/* ── Modal ── */}
       <AdminModal
         title={editing ? "Edit Product" : "Add Product"}
         open={showForm}
@@ -466,6 +554,7 @@ export default function AdminProductsPage() {
           onSubmit={handleSave}
           className="space-y-6 max-h-[72vh] overflow-y-auto pr-2"
         >
+          {/* Category */}
           <div>
             <label htmlFor="prod-cat" className={labelClass}>
               Category *
@@ -494,75 +583,106 @@ export default function AdminProductsPage() {
             </select>
           </div>
 
+          {/* Name + AI Fill */}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label htmlFor="prod-name" className={labelClass}>
                 Product Name *
               </label>
+
               <div className="flex gap-2 items-start">
+                {/* Input + lookup card */}
                 <div className="relative flex-1">
                   <input
                     id="prod-name"
                     required
                     value={form.name}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setForm((f) => ({ ...f, name: val }));
-                      if (val.length > 1) {
-                        const matches = getCachedNames().filter((n) =>
-                          n.toLowerCase().includes(val.toLowerCase()),
-                        );
-                        setSuggestions(matches);
-                        setShowSug(matches.length > 0);
-                      } else {
-                        setShowSug(false);
-                      }
-                    }}
-                    onBlur={() => setTimeout(() => setShowSug(false), 150)}
-                    onFocus={() => {
-                      if (form.name.length > 1) {
-                        const matches = getCachedNames().filter((n) =>
-                          n.toLowerCase().includes(form.name.toLowerCase()),
-                        );
-                        setShowSug(matches.length > 0);
-                        setSuggestions(matches);
-                      }
-                    }}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, name: e.target.value }))
+                    }
                     className={`${fieldClass} w-full`}
                     placeholder="e.g. Samsung Galaxy S25 Ultra"
                     autoComplete="off"
                   />
-                  {showSug && (
-                    <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl border border-white/10 bg-gray-950 shadow-xl overflow-hidden">
-                      {suggestions.map((s) => (
+
+                  {/* ── Existing-product card ── */}
+                  {showLookupCard && matchedProduct && (
+                    <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl border border-amber-500/30 bg-amber-500/10 shadow-xl backdrop-blur-sm">
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-amber-400">
+                          Existing product found
+                        </span>
                         <button
-                          key={s}
                           type="button"
-                          onMouseDown={() => {
-                            setForm((f) => ({ ...f, name: s }));
-                            setShowSug(false);
-                          }}
-                          className="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                          onClick={() => setLookupDismissed(true)}
+                          className="text-white/30 hover:text-white/70 text-lg leading-none transition-colors"
+                          aria-label="Dismiss"
                         >
-                          <svg
-                            className="w-3.5 h-3.5 text-white/30 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {s}
+                          ×
                         </button>
-                      ))}
+                      </div>
+
+                      {/* Product summary */}
+                      <div className="flex items-center gap-3 px-4 py-2">
+                        {matchedProduct.thumbnail ? (
+                          <Image
+                            src={matchedProduct.thumbnail}
+                            alt={matchedProduct.name}
+                            width={40}
+                            height={40}
+                            className="rounded-lg object-cover border border-white/10 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex-shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-sm text-white/80">
+                            {matchedProduct.name}
+                          </p>
+                          <p className="text-xs text-white/40">
+                            {[matchedProduct.brand, matchedProduct.categoryName]
+                              .filter(Boolean)
+                              .join(" · ")}
+                            {matchedProduct.updatedAt && (
+                              <>
+                                {" "}
+                                · Updated {timeAgo(matchedProduct.updatedAt)}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2 px-4 pb-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleLookupEdit(matchedProduct)}
+                          className="flex-1 rounded-lg bg-amber-600 hover:bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+                        >
+                          Edit Existing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleLookupDuplicate(matchedProduct)}
+                          className="flex-1 rounded-lg border border-amber-500/40 hover:bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-300 transition-colors"
+                        >
+                          Duplicate
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLookupDismissed(true)}
+                          className="flex-1 rounded-lg border border-white/10 hover:bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/40 transition-colors"
+                        >
+                          Create New
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
+
+                {/* AI Fill button */}
                 <button
                   type="button"
                   onClick={handleGenerate}
@@ -599,11 +719,13 @@ export default function AdminProductsPage() {
                   )}
                 </button>
               </div>
+
               {generateError && (
                 <p className="text-xs text-red-400 mt-1">{generateError}</p>
               )}
             </div>
 
+            {/* Price */}
             <div>
               <label htmlFor="prod-price" className={labelClass}>
                 Price ({currencySymbol}) *
@@ -622,6 +744,7 @@ export default function AdminProductsPage() {
               />
             </div>
 
+            {/* Stock */}
             <div>
               <label htmlFor="prod-stock" className={labelClass}>
                 Stock Quantity
@@ -638,6 +761,7 @@ export default function AdminProductsPage() {
               />
             </div>
 
+            {/* Brand */}
             <div>
               <label htmlFor="prod-brand" className={labelClass}>
                 Brand
@@ -652,6 +776,7 @@ export default function AdminProductsPage() {
               />
             </div>
 
+            {/* SKU */}
             <div>
               <label htmlFor="prod-sku" className={labelClass}>
                 SKU
@@ -667,6 +792,7 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
+          {/* Description */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="prod-desc" className={labelClass}>
@@ -690,6 +816,7 @@ export default function AdminProductsPage() {
             />
           </div>
 
+          {/* AI preview */}
           {showPreview && generatedPreview && (
             <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -762,6 +889,7 @@ export default function AdminProductsPage() {
             </div>
           )}
 
+          {/* Images + External Link */}
           <div className="grid grid-cols-2 gap-4 items-start">
             <div className="col-span-2">
               <SmartImageUpload
@@ -797,11 +925,11 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
+          {/* Checkboxes */}
           <div className="flex gap-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                id="prod-featured"
                 checked={form.isFeatured}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, isFeatured: e.target.checked }))
@@ -815,7 +943,6 @@ export default function AdminProductsPage() {
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                id="prod-active"
                 checked={form.isActive}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, isActive: e.target.checked }))
@@ -826,6 +953,7 @@ export default function AdminProductsPage() {
             </label>
           </div>
 
+          {/* Specifications */}
           {selectedCategoryKey && (
             <div>
               <p className="text-sm font-medium text-foreground mb-3">
@@ -842,6 +970,7 @@ export default function AdminProductsPage() {
             </div>
           )}
 
+          {/* SEO */}
           <details className="text-sm" open={!!form.metaTitle}>
             <summary className="cursor-pointer font-medium text-muted hover:text-foreground">
               SEO (optional)
@@ -879,10 +1008,7 @@ export default function AdminProductsPage() {
                   value={form.metaDescription}
                   maxLength={320}
                   onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      metaDescription: e.target.value,
-                    }))
+                    setForm((f) => ({ ...f, metaDescription: e.target.value }))
                   }
                   className={`${fieldClass} admin-textarea`}
                 />
@@ -893,12 +1019,14 @@ export default function AdminProductsPage() {
             </div>
           </details>
 
+          {/* Error */}
           {error && (
             <p className="text-red-300 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl">
               {error}
             </p>
           )}
 
+          {/* Submit */}
           <div className="flex gap-3 pt-2">
             <button
               type="submit"
