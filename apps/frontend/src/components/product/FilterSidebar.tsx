@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { tenantConfig } from "@storefront/config";
 
@@ -13,17 +14,28 @@ interface Category {
 interface FilterSidebarProps {
   categories: Category[];
   brands: string[];
+  showCategories?: boolean; // New prop
 }
 
-export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
+export function FilterSidebar({
+  categories,
+  brands,
+  showCategories = true,
+}: FilterSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") ?? "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") ?? "");
+
+  useEffect(() => {
+    setMinPrice(searchParams.get("minPrice") ?? "");
+    setMaxPrice(searchParams.get("maxPrice") ?? "");
+  }, [searchParams]);
+
   const currentCategory = searchParams.get("categorySlug") ?? "";
   const currentBrand = searchParams.get("brand") ?? "";
-  const currentMinPrice = searchParams.get("minPrice") ?? "";
-  const currentMaxPrice = searchParams.get("maxPrice") ?? "";
   const currentSort = searchParams.get("sort") ?? "newest";
 
   function updateFilter(key: string, value: string) {
@@ -37,12 +49,28 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  function applyPriceFilter() {
+    const params = new URLSearchParams(searchParams.toString());
+    if (minPrice) params.set("minPrice", minPrice);
+    else params.delete("minPrice");
+
+    if (maxPrice) params.set("maxPrice", maxPrice);
+    else params.delete("maxPrice");
+
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
   function clearAll() {
     router.push(pathname);
   }
 
-  const hasFilters =
-    currentCategory || currentBrand || currentMinPrice || currentMaxPrice;
+  const hasFilters = !!(
+    currentCategory ||
+    currentBrand ||
+    searchParams.has("minPrice") ||
+    searchParams.has("maxPrice")
+  );
 
   return (
     <aside className="space-y-6">
@@ -51,24 +79,10 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
           onClick={clearAll}
           className="text-xs text-accent hover:text-accent/80 transition-colors font-semibold uppercase tracking-widest flex items-center gap-1.5"
         >
-          <svg
-            className="w-3 h-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
           Clear all filters
         </button>
       )}
 
-      {/* Sort */}
       <div>
         <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
           Sort By
@@ -76,7 +90,7 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
         <select
           value={currentSort}
           onChange={(e) => updateFilter("sort", e.target.value)}
-          aria-label="Sort products"
+          aria-label="Sort products by price or date"
           className="w-full input-dark text-sm cursor-pointer"
         >
           <option value="newest">Newest First</option>
@@ -86,8 +100,8 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
         </select>
       </div>
 
-      {/* Categories */}
-      {categories.length > 0 && (
+      {/* Conditionally rendered Categories */}
+      {showCategories && categories.length > 0 && (
         <div>
           <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
             Category
@@ -96,11 +110,7 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
             <li>
               <button
                 onClick={() => updateFilter("categorySlug", "")}
-                className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
-                  !currentCategory
-                    ? "text-white bg-primary/20 font-semibold"
-                    : "text-white/50 hover:text-white hover:bg-white/5"
-                }`}
+                className={`w-full text-left text-sm px-3 py-2 rounded-lg ${!currentCategory ? "text-white bg-primary/20" : "text-white/50"}`}
               >
                 All Categories
               </button>
@@ -109,11 +119,7 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
               <li key={cat.id}>
                 <button
                   onClick={() => updateFilter("categorySlug", cat.slug)}
-                  className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
-                    currentCategory === cat.slug
-                      ? "text-white bg-primary/20 font-semibold"
-                      : "text-white/50 hover:text-white hover:bg-white/5"
-                  }`}
+                  className={`w-full text-left text-sm px-3 py-2 rounded-lg ${currentCategory === cat.slug ? "text-white bg-primary/20" : "text-white/50"}`}
                 >
                   {cat.name}
                 </button>
@@ -123,7 +129,6 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
         </div>
       )}
 
-      {/* Brands */}
       {brands.length > 0 && (
         <div>
           <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
@@ -137,9 +142,7 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
                 <label
                   key={brand}
                   htmlFor={id}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                    checked ? "bg-primary/15" : "hover:bg-white/5"
-                  }`}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-white/5"
                 >
                   <input
                     type="checkbox"
@@ -149,7 +152,7 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
                     className="w-4 h-4 rounded border-white/20 bg-white/5 text-primary accent-primary cursor-pointer"
                   />
                   <span
-                    className={`text-sm transition-colors ${checked ? "text-white font-medium" : "text-white/60"}`}
+                    className={`text-sm ${checked ? "text-white font-medium" : "text-white/60"}`}
                   >
                     {brand}
                   </span>
@@ -160,31 +163,33 @@ export function FilterSidebar({ categories, brands }: FilterSidebarProps) {
         </div>
       )}
 
-      {/* Price range */}
       <div>
         <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
           Price ({tenantConfig.identity.currencySymbol})
         </h3>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            placeholder="Min"
-            value={currentMinPrice}
-            onChange={(e) => updateFilter("minPrice", e.target.value)}
-            min={0}
-            aria-label="Minimum price"
-            className="input-dark text-sm w-full"
-          />
-          <span className="text-white/30 text-sm flex-shrink-0">–</span>
-          <input
-            type="number"
-            placeholder="Max"
-            value={currentMaxPrice}
-            onChange={(e) => updateFilter("maxPrice", e.target.value)}
-            min={0}
-            aria-label="Maximum price"
-            className="input-dark text-sm w-full"
-          />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              placeholder="Min"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              className="input-dark text-sm w-full"
+            />
+            <input
+              type="number"
+              placeholder="Max"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              className="input-dark text-sm w-full"
+            />
+          </div>
+          <button
+            onClick={applyPriceFilter}
+            className="w-full bg-primary/20 hover:bg-primary/30 text-white text-sm py-2 rounded-lg transition-colors"
+          >
+            Apply Price Filter
+          </button>
         </div>
       </div>
     </aside>
