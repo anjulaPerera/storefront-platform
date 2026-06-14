@@ -196,25 +196,7 @@ export const tenantConfig: TenantConfig = {
   navigation: {
     topLinks: [
       { label: "Home", href: "/" },
-      {
-        label: "Smartphones",
-        href: "/categories/smartphones",
-        children: [
-          {
-            label: "Samsung",
-            href: "/products?categorySlug=smartphones&brand=Samsung",
-          },
-          {
-            label: "Apple",
-            href: "/products?categorySlug=smartphones&brand=Apple",
-          },
-          {
-            label: "Xiaomi",
-            href: "/products?categorySlug=smartphones&brand=Xiaomi",
-          },
-          { label: "All Phones", href: "/categories/smartphones" },
-        ],
-      },
+      { label: "Smartphones", href: "/categories/smartphones" },
       { label: "Tablets", href: "/categories/tablets" },
       { label: "Accessories", href: "/categories/accessories" },
       { label: "About", href: "/about" },

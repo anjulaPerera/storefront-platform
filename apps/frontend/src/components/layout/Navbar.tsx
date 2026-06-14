@@ -15,9 +15,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // ← Added isHydrated and isLoading alongside user and logout
   const { user, logout, isHydrated, isLoading } = useAuthStore();
-
   const { mobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useUIStore();
   const wishlistCount = useWishlistStore((s) => s.productIds.size);
 
@@ -31,9 +29,6 @@ export function Navbar() {
     closeMobileMenu();
   }, [closeMobileMenu, pathname]);
 
-  // Derived flag: true while the session restoration is still in flight.
-  // When this is true we don't yet know whether the visitor is logged in or
-  // not, so we render a neutral placeholder instead of either state.
   const sessionPending = !isHydrated || isLoading;
 
   return (
@@ -52,7 +47,6 @@ export function Navbar() {
                 : "px-0"
             }`}
           >
-            {/* Logo */}
             <Link
               href="/"
               className="flex items-center gap-2.5 flex-shrink-0 group"
@@ -68,9 +62,10 @@ export function Navbar() {
               </span>
             </Link>
 
-            {/* Desktop links */}
             <div className="hidden lg:flex items-center gap-1">
               {navigation.topLinks.map((link) => {
+                const isSmartphones =
+                  link.label.toLowerCase() === "smartphones";
                 const active =
                   link.href === "/"
                     ? pathname === "/"
@@ -80,7 +75,7 @@ export function Navbar() {
                   <div key={link.href} className="relative group">
                     <Link
                       href={
-                        link.children
+                        link.children && !isSmartphones
                           ? (link.children.at(-1)?.href ?? link.href)
                           : link.href
                       }
@@ -91,7 +86,7 @@ export function Navbar() {
                       }`}
                     >
                       {link.label}
-                      {link.children && (
+                      {link.children && !isSmartphones && (
                         <svg
                           className="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-180"
                           fill="none"
@@ -108,13 +103,8 @@ export function Navbar() {
                       )}
                     </Link>
 
-                    {link.children && (
-                      <div
-                        className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-52
-                          opacity-0 invisible
-                          group-hover:opacity-100 group-hover:visible
-                          transition-all duration-150 z-50"
-                      >
+                    {link.children && !isSmartphones && (
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-52 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
                         <div className="glass-2 rounded-2xl border border-border-mid overflow-hidden shadow-card">
                           <div className="py-2">
                             {link.children.map((child) => (
@@ -135,9 +125,7 @@ export function Navbar() {
               })}
             </div>
 
-            {/* Right actions */}
             <div className="flex items-center gap-1.5">
-              {/* Search */}
               <button
                 onClick={() => setSearchOpen(true)}
                 className="p-2.5 rounded-full text-muted hover:text-white hover:bg-white/5 transition-colors"
@@ -158,7 +146,6 @@ export function Navbar() {
                 </svg>
               </button>
 
-              {/* Wishlist */}
               <Link
                 href="/wishlist"
                 className="relative p-2.5 rounded-full text-muted hover:text-white hover:bg-white/5 transition-colors"
@@ -184,13 +171,7 @@ export function Navbar() {
                 )}
               </Link>
 
-              {/* Account — three possible states:
-                  1. sessionPending: we don't know yet → show a shimmer placeholder
-                  2. user exists: show avatar + dropdown
-                  3. no user: show Sign In button                                   */}
               {sessionPending ? (
-                // Matches the width/height of the Sign In button so the navbar
-                // doesn't shift when the real element appears.
                 <div className="w-20 h-9 rounded-full bg-white/5 animate-pulse" />
               ) : user ? (
                 <div className="relative group">
@@ -235,7 +216,6 @@ export function Navbar() {
                 </Link>
               )}
 
-              {/* Mobile hamburger */}
               <button
                 onClick={toggleMobileMenu}
                 className="lg:hidden p-2.5 rounded-full text-muted hover:text-white hover:bg-white/5 transition-colors"
@@ -350,7 +330,7 @@ export function Navbar() {
               <button
                 onClick={() => setSearchOpen(false)}
                 className="text-muted hover:text-white p-1"
-                aria-label="open-search"
+                aria-label="close-search"
               >
                 <svg
                   className="w-5 h-5"

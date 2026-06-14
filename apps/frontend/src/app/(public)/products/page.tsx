@@ -114,7 +114,11 @@ export default async function ProductsPage({
           {/* Sidebar */}
           <aside className="hidden lg:block w-56 flex-shrink-0">
             <Suspense>
-              <FilterSidebar categories={categories} brands={brands} />
+              <FilterSidebar
+                categories={categories}
+                brands={brands}
+                showCategories={true}
+              />
             </Suspense>
           </aside>
 

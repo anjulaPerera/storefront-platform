@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { FadeIn } from "@/components/motion/FadeIn";
+import { FilterSidebar } from "@/components/product/FilterSidebar";
 
 interface Category {
   id: string;
@@ -11,6 +12,7 @@ interface Category {
   slug: string;
   description: string | null;
 }
+
 interface Product {
   id: string;
   name: string;
@@ -43,9 +45,14 @@ export default async function CategoryPage({
   searchParams,
 }: {
   params: { slug: string };
-  searchParams: { brand?: string; sort?: string };
+  searchParams: {
+    brand?: string;
+    sort?: string;
+    minPrice?: string;
+    maxPrice?: string;
+  };
 }) {
-  // ── 1. Category is critical — 404 if missing ──────────────────────────
+  // 1. Data Fetching
   let category: Category;
   try {
     category = await apiFetch<Category>(`/categories/${params.slug}`, {
@@ -55,32 +62,59 @@ export default async function CategoryPage({
     notFound();
   }
 
-  // ── 2. Products list is non-critical — degrade to empty grid ──────────
-  let products: Product[] = [];
-  try {
-    const qs = new URLSearchParams({
-      categorySlug: params.slug,
-      limit: "24",
-    });
-    if (searchParams.brand) qs.set("brand", searchParams.brand);
-    if (searchParams.sort) qs.set("sort", searchParams.sort);
+  const qs = new URLSearchParams({
+    categorySlug: params.slug,
+    limit: "24",
+    ...(searchParams.brand && { brand: searchParams.brand }),
+    ...(searchParams.sort && { sort: searchParams.sort }),
+    ...(searchParams.minPrice && { minPrice: searchParams.minPrice }),
+    ...(searchParams.maxPrice && { maxPrice: searchParams.maxPrice }),
+  });
 
-    const res = (await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/products?${qs.toString()}`,
-      { next: { revalidate: 300 } },
-    ).then((r) => r.json())) as { data: Product[] };
+  const [productsRes, categoriesRes] = await Promise.allSettled([
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/products?${qs.toString()}`, {
+      next: { revalidate: 300 },
+    }).then((r) => r.json()),
+    apiFetch<Category[]>("/categories", { next: { revalidate: 600 } }),
+  ]);
 
-    products = res.data ?? [];
-  } catch (err) {
-    console.error(
-      "[SSR] products fetch failed for category:",
-      params.slug,
-      err,
+  const products: Product[] =
+    productsRes.status === "fulfilled" && productsRes.value?.data
+      ? productsRes.value.data
+      : [];
+  const allCategories: Category[] =
+    categoriesRes.status === "fulfilled"
+      ? (categoriesRes.value as Category[])
+      : [];
+
+  // 2. Brand Logic
+  let brands: string[] = [];
+  if (params.slug === "accessories") {
+    const baseAccessories = [
+      "Anker",
+      "Baseus",
+      "Ugreen",
+      "Remax",
+      "Joyroom",
+      "Samsung",
+      "Apple",
+      "Xiaomi",
+      "Havit",
+      "LDNIO",
+    ];
+    const productBrands = Array.from(
+      new Set(products.map((p) => p.brand).filter(Boolean) as string[]),
     );
+    brands = Array.from(new Set([...baseAccessories, ...productBrands])).sort(
+      (a, b) => a.localeCompare(b),
+    );
+  } else {
+    const brandSet = new Set(
+      products.filter((p) => p?.brand).map((p) => p.brand as string),
+    );
+    brands = Array.from(brandSet).sort((a, b) => a.localeCompare(b));
   }
 
-
-  // Hero gradient per category
   const heroColors: Record<string, string> = {
     smartphones: "rgba(37,99,235,0.35)",
     tablets: "rgba(124,58,237,0.3)",
@@ -90,64 +124,48 @@ export default async function CategoryPage({
 
   return (
     <div className="min-h-screen">
-      {/* Category Hero */}
       <section
         className="relative pt-32 pb-20 text-center overflow-hidden"
         style={{
           background: `radial-gradient(ellipse 70% 60% at 50% 0%, ${glow} 0%, transparent 65%), #050816`,
         }}
       >
-        {/* Stars */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          aria-hidden="true"
-        >
-          {Array.from({ length: 50 }, (_, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full bg-white animate-twinkle"
-              style={{
-                top: `${(i * 37) % 100}%`,
-                left: `${(i * 53) % 100}%`,
-                width: `${((i * 7) % 2) + 1}px`,
-                height: `${((i * 7) % 2) + 1}px`,
-                opacity: ((i * 11) % 50) / 100 + 0.1,
-                animationDelay: `${((i * 3) % 30) / 10}s`,
-              }}
-            />
-          ))}
-        </div>
-
         <div className="relative z-10 container-wide">
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
               { label: "Products", href: "/products" },
-              { label: category!.name },
+              { label: category.name },
             ]}
           />
-
           <FadeIn>
             <h1 className="font-display font-black text-hero text-white mt-6 mb-4">
-              {category!.name}
+              {category.name}
             </h1>
-            {category!.description && (
+            {category.description && (
               <p className="text-muted max-w-lg mx-auto text-lg">
-                {category!.description}
+                {category.description}
               </p>
             )}
             <p className="text-sm text-dim mt-4">{products.length} products</p>
           </FadeIn>
         </div>
-
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-space-1 to-transparent pointer-events-none" />
       </section>
 
-      {/* Products */}
-      <section className="container-wide py-16">
-        <FadeIn variant="scale">
-          <ProductGrid products={products} columns={4} />
-        </FadeIn>
+      <section className="container-wide py-16 flex gap-10">
+        <aside className="hidden lg:block w-56 flex-shrink-0">
+          <FilterSidebar
+            categories={allCategories}
+            brands={brands}
+            showCategories={false}
+          />
+        </aside>
+        <div className="flex-1 min-w-0">
+          <FadeIn variant="scale">
+            <ProductGrid products={products} columns={4} />
+          </FadeIn>
+        </div>
       </section>
     </div>
   );
