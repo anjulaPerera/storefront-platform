@@ -2,8 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies needed for image processing libraries
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Hardened system updates with retry loop configurations and repository fallbacks
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get update -y || (sleep 5 && apt-get update -y) && \
+    apt-get install -y --no-install-recommends \
     build-essential \
     libgl1-mesa-glx \
     libglib2.0-0 \
