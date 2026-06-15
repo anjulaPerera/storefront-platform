@@ -1,3 +1,5 @@
+import { AuditLog, User } from "@storefront/types";
+
 const isBrowser = typeof window !== "undefined";
 
 // BROWSER: always use the relative proxy path (/api/backend/...) regardless of
@@ -38,6 +40,12 @@ interface FetchOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
 
+export interface ApiEnvelope<T> {
+  success: boolean;
+  data: T;
+  meta?: unknown;
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options: FetchOptions = {},
@@ -54,10 +62,6 @@ export async function apiFetch<T>(
     clean = `/${clean}`;
   }
 
-  // Build URL with query params.
-  // new URL() requires an absolute URL — when BASE_URL is a relative path (e.g. "/api/backend/api/v1"),
-  // we must supply window.location.origin as the base, otherwise it throws a TypeError that gets
-  // swallowed by the hydrate() catch block and silently logs the user out on every page refresh.
   const rawHref = `${BASE_URL}${clean}`;
   const url = rawHref.startsWith("http")
     ? new URL(rawHref)
@@ -107,6 +111,149 @@ export async function apiFetch<T>(
   return json.data;
 }
 
+export async function apiFetchWithMeta<T>(
+  endpoint: string,
+  options: FetchOptions = {},
+): Promise<{
+  data: T;
+  meta?: unknown;
+}> {
+  const { token, params, ...fetchOptions } = options;
+
+  // Strip /api/v1 prefix from endpoint if base already includes it
+  let clean = endpoint.startsWith("/api/v1")
+    ? endpoint.slice(7) // remove the 7 chars of '/api/v1'
+    : endpoint;
+
+  // Ensure clean always has a leading slash for the URL constructor
+  if (!clean.startsWith("/")) {
+    clean = `/${clean}`;
+  }
+
+  const rawHref = `${BASE_URL}${clean}`;
+  const url = rawHref.startsWith("http")
+    ? new URL(rawHref)
+    : new URL(
+        rawHref,
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "http://localhost:3000",
+      );
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined) url.searchParams.set(k, String(v));
+    });
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((fetchOptions.headers as Record<string, string>) ?? {}),
+  };
+
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const response = await fetch(url.toString(), { ...fetchOptions, headers });
+
+  if (!response.ok) {
+    let code = "UNKNOWN_ERROR";
+    let message = `HTTP ${response.status}`;
+    try {
+      const body = (await response.json()) as {
+        error?: { code: string; message: string };
+      };
+      if (body.error) {
+        code = body.error.code;
+        message = body.error.message;
+      }
+    } catch {
+      /* ignore parse errors */
+    }
+    throw new ApiError(message, code, response.status);
+  }
+
+  const json = (await response.json()) as {
+    success: boolean;
+    data: T;
+    meta?: unknown;
+  };
+
+  return {
+    data: json.data,
+    meta: json.meta,
+  };
+}
+
+
+export async function apiFetchEnvelope<T>(
+  endpoint: string,
+  options: FetchOptions = {},
+): Promise<ApiEnvelope<T>> {
+  const { token, params, ...fetchOptions } = options;
+
+  let clean = endpoint.startsWith("/api/v1") ? endpoint.slice(7) : endpoint;
+
+  if (!clean.startsWith("/")) {
+    clean = `/${clean}`;
+  }
+
+  const rawHref = `${BASE_URL}${clean}`;
+
+  const url = rawHref.startsWith("http")
+    ? new URL(rawHref)
+    : new URL(
+        rawHref,
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "http://localhost:3000",
+      );
+
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined) {
+        url.searchParams.set(k, String(v));
+      }
+    });
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((fetchOptions.headers as Record<string, string>) ?? {}),
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url.toString(), {
+    ...fetchOptions,
+    headers,
+  });
+
+  if (!response.ok) {
+    let code = "UNKNOWN_ERROR";
+    let message = `HTTP ${response.status}`;
+
+    try {
+      const body = (await response.json()) as {
+        error?: {
+          code: string;
+          message: string;
+        };
+      };
+
+      if (body.error) {
+        code = body.error.code;
+        message = body.error.message;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    throw new ApiError(message, code, response.status);
+  }
+
+  return (await response.json()) as ApiEnvelope<T>;
+}
 // ─── Typed API methods ────────────────────────────────────────────────────────
 
 export const api = {
@@ -427,7 +574,7 @@ export const api = {
 
     // Users
     listUsers: (token: string, params?: Record<string, string>) =>
-      apiFetch("/users", { token, params, cache: "no-store" }),
+      apiFetchWithMeta<User[]>("/users", { token, params, cache: "no-store" }),
     toggleUser: (id: string, token: string) =>
       apiFetch(`/users/${id}/toggle`, {
         method: "PATCH",
@@ -443,6 +590,39 @@ export const api = {
       }),
     deleteUser: (id: string, token: string) =>
       apiFetch(`/users/${id}`, { method: "DELETE", token, cache: "no-store" }),
+    listUsersPaginated: (
+      token: string,
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
+      apiFetchEnvelope<User[]>("/users", {
+        token,
+        params,
+        cache: "no-store",
+      }),
+    listAuditLogs: (
+      token: string,
+      params?: Record<string, string | number | boolean | undefined>,
+    ) =>
+      apiFetchEnvelope<AuditLog[]>("/users/audit-logs", {
+        token,
+        params,
+        cache: "no-store",
+      }),
+    createUser: (
+      data: {
+        email: string;
+        firstName: string;
+        lastName: string;
+        role: "customer" | "admin";
+      },
+      token: string,
+    ) =>
+      apiFetch("/users", {
+        method: "POST",
+        body: JSON.stringify(data),
+        token,
+        cache: "no-store",
+      }),
   },
   upload: {
     /**

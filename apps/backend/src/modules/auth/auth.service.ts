@@ -123,6 +123,10 @@ export async function loginUser(
   const valid = await comparePassword(password, row.password_hash as string);
   if (!valid) throw INVALID;
 
+await pool.query("UPDATE users SET last_login_at = NOW() WHERE id = $1", [
+  row.id,
+]);
+
   const accessToken = signAccessToken({
     userId: row.id as string,
     email: row.email as string,
