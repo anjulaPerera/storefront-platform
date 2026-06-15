@@ -74,6 +74,7 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [existingProduct, setExistingProduct] = useState<Product | null>(null);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -85,12 +86,7 @@ export default function AdminProductsPage() {
     useState<GeneratedContent | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("action") === "new") {
-      setShowForm(true);
-    }
-  }, []);
+
 
   const { data, loading, reload } = useAdminData(
     (token) =>
@@ -103,6 +99,27 @@ export default function AdminProductsPage() {
 
   const products = data?.products ?? [];
   const categories = data?.categories ?? [];
+
+    useEffect(() => {
+      // Only check if we are in creation mode (not editing an existing one)
+      if (!showForm || editing || !form.name) {
+        setExistingProduct(null);
+        return;
+      }
+
+      // Perform a case-insensitive search
+      const found = products.find(
+        (p) => p.name.toLowerCase() === form.name.trim().toLowerCase(),
+      );
+      setExistingProduct(found || null);
+    }, [form.name, showForm, editing, products]);
+
+    useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("action") === "new") {
+        setShowForm(true);
+      }
+    }, []);
 
   // Reset to page 1 whenever the product list reloads
   useEffect(() => {
@@ -534,6 +551,18 @@ export default function AdminProductsPage() {
               )}
             </div>
 
+            {existingProduct && (
+              <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm text-amber-200">
+                <p>A product with this name already exists.</p>
+                <button
+                  type="button"
+                  onClick={() => openEdit(existingProduct)}
+                  className="text-amber-400 font-bold underline mt-1"
+                >
+                  Load existing details to edit?
+                </button>
+              </div>
+            )}
             {/* Price */}
             <div>
               <label htmlFor="prod-price" className={labelClass}>
@@ -701,7 +730,14 @@ export default function AdminProductsPage() {
           {/* ─── Thumbnail upload + External Link ─────────────────────────── */}
           <div className="grid grid-cols-2 gap-4 items-start">
             <div className="col-span-2">
-              <SmartImageUpload values={[form.thumbnail]} onChange={(urls) => urls[0]}/>
+              {/* <SmartImageUpload
+                values={[form.thumbnail]}
+                onChange={(urls) => urls[0]}
+              /> */}
+              <SmartImageUpload
+                values={form.thumbnail ? [form.thumbnail] : []}
+                onChange={(urls) => urls[0] || ""}
+              />
             </div>
 
             <div className="col-span-2">

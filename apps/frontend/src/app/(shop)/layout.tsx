@@ -7,14 +7,13 @@ interface ShopShellProps {
   children: React.ReactNode;
 }
 
-export async function ShopShell({ children }: ShopShellProps) {
+// ✅ Default export
+export default async function ShopShell({ children }: ShopShellProps) {
   return (
     <>
       <TopStrip />
       <Navbar />
-
       <main>{children}</main>
-
       <Footer />
       <ChatWidget />
     </>
