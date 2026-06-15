@@ -1,46 +1,73 @@
-import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import type { Metadata } from 'next';
-import { tenantConfig } from '@storefront/config';
-import { apiFetch } from '@/lib/api';
-import { StarRating } from '@/components/ui/StarRating';
-import { Badge } from '@/components/ui/Badge';
-import { Breadcrumb } from '@/components/ui/Breadcrumb';
-import { WishlistButton } from '@/components/product/WishlistButton';
-import { EnquiryButton } from '@/components/product/EnquiryButton';
-import { ReviewSection } from '@/components/product/ReviewSection';
+import { notFound } from "next/navigation";
+import Image from "next/image";
+import type { Metadata } from "next";
+import { tenantConfig } from "@storefront/config";
+import { apiFetch } from "@/lib/api";
+import { StarRating } from "@/components/ui/StarRating";
+import { Badge } from "@/components/ui/Badge";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { WishlistButton } from "@/components/product/WishlistButton";
+import { EnquiryButton } from "@/components/product/EnquiryButton";
+import { ReviewSection } from "@/components/product/ReviewSection";
 
 interface Product {
-  id: string; name: string; slug: string; price: number;
-  description: string | null; thumbnail: string | null; images: string[];
-  brand: string | null; stockQuantity: number; externalLink: string | null;
-  attributes: Record<string, unknown>; averageRating: number; reviewCount: number;
-  activeDiscount?: { label: string | null }; discountedPrice?: number;
-  metaTitle: string | null; metaDescription: string | null;
-  categoryName?: string; categorySlug?: string;
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  description: string | null;
+  thumbnail: string | null;
+  images: string[];
+  brand: string | null;
+  stockQuantity: number;
+  externalLink: string | null;
+  attributes: Record<string, unknown>;
+  averageRating: number;
+  reviewCount: number;
+  activeDiscount?: { label: string | null };
+  discountedPrice?: number;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  categoryName?: string;
+  categorySlug?: string;
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+// AFTER
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   try {
-    const product = await apiFetch<Product>(`/products/${params.slug}`, { next: { revalidate: 600 } });
+    const { slug } = await params;
+    const product = await apiFetch<Product>(`/products/${slug}`, {
+      next: { revalidate: 600 },
+    });
     return {
-      title:       product.metaTitle ?? product.name,
+      title: product.metaTitle ?? product.name,
       description: product.metaDescription ?? product.description ?? undefined,
       openGraph: {
-        title:  product.metaTitle ?? product.name,
+        title: product.metaTitle ?? product.name,
         images: product.thumbnail ? [product.thumbnail] : [],
       },
     };
   } catch {
-    return { title: 'Product Not Found' };
+    return { title: "Product Not Found" };
   }
 }
 
-export default async function ProductDetailPage({ params }: { params: { slug: string } }) {
+export default async function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
   let product: Product;
   try {
-    
-    product = await apiFetch<Product>(`/products/${params.slug}`, { next: { revalidate: 600 } });
+        product = await apiFetch<Product>(`/products/${slug}`, {
+          next: { revalidate: 600 },
+        });
+
   } catch {
     notFound();
   }
@@ -48,31 +75,37 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
   const { currencySymbol, locale } = tenantConfig.identity;
   const { features, externalLinks, productTaxonomy } = tenantConfig;
 
-  const hasDiscount = product.discountedPrice !== undefined && product.discountedPrice < product.price;
-  const inStock     = product.stockQuantity > 0;
+  const hasDiscount =
+    product.discountedPrice !== undefined &&
+    product.discountedPrice < product.price;
+  const inStock = product.stockQuantity > 0;
 
   // Find which attributes to display using SSOT taxonomy
-  const categoryKey    = product.categorySlug ?? '';
-  const taxonomyConfig = productTaxonomy.categories.find((c) => c.key === categoryKey);
+  const categoryKey = product.categorySlug ?? "";
+  const taxonomyConfig = productTaxonomy.categories.find(
+    (c) => c.key === categoryKey,
+  );
   const specRows = taxonomyConfig
     ? taxonomyConfig.attributes
         .filter((attr) => product.attributes[attr.key] !== undefined)
         .map((attr) => ({
           label: attr.label,
-          value: `${product.attributes[attr.key] as string}${attr.unit ? ` ${attr.unit}` : ''}`,
+          value: `${product.attributes[attr.key] as string}${attr.unit ? ` ${attr.unit}` : ""}`,
         }))
-    : Object.entries(product.attributes).map(([k, v]) => ({ label: k, value: String(v) }));
+    : Object.entries(product.attributes).map(([k, v]) => ({
+        label: k,
+        value: String(v),
+      }));
 
   // External spec link (e.g. GSM Arena)
   const extLinkConfig = externalLinks[categoryKey];
-  const specLink = features.externalSpecLinks && product.externalLink && extLinkConfig
-    ? { url: product.externalLink, label: extLinkConfig.label }
-    : null;
+  const specLink =
+    features.externalSpecLinks && product.externalLink && extLinkConfig
+      ? { url: product.externalLink, label: extLinkConfig.label }
+      : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-24">
-     
-
       <Breadcrumb
         items={[
           { label: "Home", href: "/" },

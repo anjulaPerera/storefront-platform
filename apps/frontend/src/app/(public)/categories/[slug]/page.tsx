@@ -30,10 +30,11 @@ interface Product {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   try {
-    const cat = await apiFetch<Category>(`/categories/${params.slug}`);
+    const { slug } = await params;
+    const cat = await apiFetch<Category>(`/categories/${slug}`);
     return { title: cat.name, description: cat.description ?? undefined };
   } catch {
     return { title: "Category" };
@@ -44,18 +45,21 @@ export default async function CategoryPage({
   params,
   searchParams,
 }: {
-  params: { slug: string };
-  searchParams: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{
     brand?: string;
     sort?: string;
     minPrice?: string;
     maxPrice?: string;
-  };
+  }>;
 }) {
+  const { slug } = await params;
+  const { brand, sort, minPrice, maxPrice } = await searchParams;
+
   // 1. Data Fetching
   let category: Category;
   try {
-    category = await apiFetch<Category>(`/categories/${params.slug}`, {
+    category = await apiFetch<Category>(`/categories/${slug}`, {
       next: { revalidate: 300 },
     });
   } catch {
@@ -63,12 +67,12 @@ export default async function CategoryPage({
   }
 
   const qs = new URLSearchParams({
-    categorySlug: params.slug,
+    categorySlug: slug,
     limit: "24",
-    ...(searchParams.brand && { brand: searchParams.brand }),
-    ...(searchParams.sort && { sort: searchParams.sort }),
-    ...(searchParams.minPrice && { minPrice: searchParams.minPrice }),
-    ...(searchParams.maxPrice && { maxPrice: searchParams.maxPrice }),
+    ...(brand && { brand: brand }),
+    ...(sort && { sort: sort }),
+    ...(minPrice && { minPrice: minPrice }),
+    ...(maxPrice && { maxPrice: maxPrice }),
   });
 
   const [productsRes, categoriesRes] = await Promise.allSettled([
@@ -89,7 +93,7 @@ export default async function CategoryPage({
 
   // 2. Brand Logic
   let brands: string[] = [];
-  if (params.slug === "accessories") {
+  if (slug === "accessories") {
     const baseAccessories = [
       "Anker",
       "Baseus",
@@ -120,7 +124,7 @@ export default async function CategoryPage({
     tablets: "rgba(124,58,237,0.3)",
     accessories: "rgba(245,158,11,0.25)",
   };
-  const glow = heroColors[params.slug] ?? "rgba(37,99,235,0.25)";
+  const glow = heroColors[slug] ?? "rgba(37,99,235,0.25)";
 
   return (
     <div className="min-h-screen">
