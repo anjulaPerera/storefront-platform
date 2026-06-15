@@ -4,6 +4,4 @@ packages:
 
 allowBuilds:
   unrs-resolver: true
-  bcrypt: false
-  esbuild: false
-  sharp: false
+  protobufjs: true
