@@ -52,7 +52,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         env:
-          PNPM_FLAGS: "--only-allow-built-dependencies" # Tells pnpm to bypass the interactive confirmation map
+          PNPM_FLAGS: "--only-allow-built-dependencies" 
 
       - name: Lint
         run: pnpm --filter frontend lint
