@@ -131,11 +131,11 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* Info */}
       <div className="p-4">
         {product.brand && (
-          <p className="text-xs text-muted uppercase tracking-widest mb-1 font-semibold">
+          <p className="text-sm text-white uppercase tracking-widest mb-1 font-semibold">
             {product.brand}
           </p>
         )}
-        <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug mb-3 group-hover:text-white transition-colors">
+        <h3 className="text-sm font-semibold text-white/80 line-clamp-2 leading-snug mb-3 group-hover:text-white transition-colors">
           {product.name}
         </h3>
 

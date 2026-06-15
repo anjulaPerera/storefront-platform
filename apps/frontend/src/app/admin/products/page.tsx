@@ -20,7 +20,7 @@ interface Product {
   stockQuantity: number;
   brand: string | null;
   thumbnail: string | null;
-  images?: string[];
+  images: string[];
   isActive: boolean;
   isFeatured: boolean;
   categoryId: string;
@@ -182,7 +182,8 @@ useEffect(() => {
       sku: p.sku ?? "",
       brand: p.brand ?? "",
       // thumbnail: p.thumbnail ?? "",
-      images: p.thumbnail ? [p.thumbnail] : [],
+      images:
+        p.images?.length > 0 ? p.images : p.thumbnail ? [p.thumbnail] : [],
       externalLink: p.externalLink ?? "",
       isFeatured: p.isFeatured,
       isActive: p.isActive,
@@ -284,6 +285,7 @@ useEffect(() => {
       brand: form.brand || null,
       // thumbnail: form.thumbnail || null,
       thumbnail: form.images[0] || null,
+      images: form.images,
       externalLink: form.externalLink || null,
       isFeatured: form.isFeatured,
       isActive: form.isActive,
