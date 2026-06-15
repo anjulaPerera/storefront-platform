@@ -18,5 +18,11 @@
   },
   "devDependencies": {
     "typescript": "^5.5.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "unrs-resolver",
+      "protobufjs"
+    ]
   }
 }
