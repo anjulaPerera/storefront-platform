@@ -20,7 +20,7 @@ export function Navbar() {
   const wishlistCount = useWishlistStore((s) => s.productIds.size);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -41,7 +41,7 @@ export function Navbar() {
       >
         <div className="container-wide">
           <nav
-            className={`flex items-center justify-between transition-all duration-500 border border-transparent ${
+            className={`flex items-center justify-between transition-all duration-500 border border-transparent  ${
               scrolled
                 ? "glass-2 rounded-full px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
                 : "px-0"
