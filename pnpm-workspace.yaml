@@ -5,3 +5,5 @@ packages:
 allowBuilds:
   unrs-resolver: true
   protobufjs: true
+  esbuild: true
+  sharp: true
