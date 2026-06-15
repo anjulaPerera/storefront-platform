@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 interface User {
   id: string;
@@ -63,7 +63,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   hydrate: async () => {
-    // Bail if already done OR if a call is already in-flight
     if (get().isHydrated || _hydrateInFlight) return;
     _hydrateInFlight = true;
     set({ isLoading: true });
@@ -71,24 +70,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const data = (await api.auth.refresh()) as { accessToken: string };
       const user = (await api.auth.me(data.accessToken)) as { user: User };
-      set({
-        user: user.user,
-        accessToken: data.accessToken,
-        isLoading: false,
-        isHydrated: true,
-      });
+      set({ user: user.user, accessToken: data.accessToken });
     } catch (err) {
-      // 401 = no active session (expected on first visit / after logout)
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[auth] hydrate failed:", err);
+      if (
+        err instanceof ApiError &&
+        (err.status === 401 || err.code === "NO_REFRESH_TOKEN")
+      ) {
+        // Expected — no active session, silently clear
+        set({ user: null, accessToken: null });
+      } else {
+        // Unexpected failure — still clear auth
+        set({ user: null, accessToken: null });
+        // optionally log: console.error("[auth] hydrate failed:", err);
       }
-      set({
-        user: null,
-        accessToken: null,
-        isLoading: false,
-        isHydrated: true,
-      });
     } finally {
+      // Always mark hydration complete and clear loading, regardless of outcome
+      set({ isHydrated: true, isLoading: false });
       _hydrateInFlight = false;
     }
   },

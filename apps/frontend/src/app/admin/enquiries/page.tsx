@@ -61,13 +61,13 @@ const {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Enquiries</h1>
+        <h1 className="text-2xl font-bold text-white">Enquiries</h1>
         <div className="flex gap-2">
           {["", ...STATUS_OPTS].map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${filter === s ? "bg-primary text-white" : "bg-surface border border-gray-200 text-muted hover:text-foreground"}`}
+              className={`px-3 py-1.5 text-xs font-weight-btn rounded-lg transition-colors ${filter === s ? "bg-primary text-white" : "bg-surface border border-gray-200 text-muted hover:text-foreground"}`}
             >
               {s || "All"}
             </button>

@@ -45,7 +45,7 @@ export default function AdminReviewsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Pending Reviews</h1>
+        <h1 className="text-2xl font-bold text-white">Pending Reviews</h1>
         <Badge variant={reviews.length > 0 ? "warning" : "success"}>
           {reviews.length} pending
         </Badge>

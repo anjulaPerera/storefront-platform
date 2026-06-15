@@ -37,6 +37,7 @@ export interface User {
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  lastLoginAt: string | null;
 }
 
 export interface Category {
@@ -128,4 +129,28 @@ export interface Enquiry {
   status: "open" | "replied" | "closed";
   createdAt: string;
   product?: Pick<Product, "name" | "slug">;
+}
+
+export interface AuditLog {
+  id: string;
+  actorUserId: string;
+  actorEmail?: string;
+  action: string;
+  targetUserId: string | null;
+  targetEmail?: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface Meta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface ListUsersParams {
+  page: number; // or string
+  limit: number; // or string
+  role?: string; // ← add the ?
 }
