@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 interface User {
   id: string;
@@ -79,8 +79,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch (err) {
       // 401 = no active session (expected on first visit / after logout)
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[auth] hydrate failed:", err);
+      if (
+        err instanceof ApiError &&
+        (err.status === 401 || err.code === "NO_REFRESH_TOKEN")
+      ) {
+        return;
       }
       set({
         user: null,

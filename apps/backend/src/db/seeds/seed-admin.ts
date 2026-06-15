@@ -26,7 +26,7 @@ async function seedAdmin(): Promise<void> {
     await client.query(
       `INSERT INTO users
          (email, password_hash, first_name, last_name, role, is_active, email_verified)
-       VALUES ($1, $2, $3, $4, 'admin', true, true)`,
+       VALUES ($1, $2, $3, $4, 'super_admin', true, true)`,
       [email, passwordHash, firstName, lastName],
     );
 
@@ -40,6 +40,6 @@ async function seedAdmin(): Promise<void> {
 }
 
 seedAdmin().catch((err: Error) => {
-  console.error("❌  Admin seed failed:", err.message);
+  console.error("❌  Super Admin seed failed:", err.message);
   process.exit(1);
 });
