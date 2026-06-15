@@ -8,11 +8,16 @@
  * Each describe block creates its own users so tests are order-independent.
  */
 
+
+
 import request from "supertest";
-import app from "@/app";
+import { createApp } from "@/app";
 import { pool } from "@/config/db";
 import { hashPassword } from "@/utils/hash.utils";
 import { signAccessToken } from "@/utils/jwt.utils";
+
+const app = createApp();
+console.log("APP:", app);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,7 +60,7 @@ async function cleanupUsers(emailLike: string) {
 
 // ─── Test suites ──────────────────────────────────────────────────────────────
 
-describe("GET /api/users", () => {
+describe("GET /api/v1/users", () => {
   const PREFIX = "listtest_";
 
   beforeAll(async () => {
@@ -64,10 +69,11 @@ describe("GET /api/users", () => {
     await createUserAndToken({ email: `${PREFIX}admin@test.com`,    role: "admin"    });
   });
 
-  afterAll(() => cleanupUsers(PREFIX));
-
+afterAll(async () => {
+  await cleanupUsers(PREFIX);
+});
   it("returns 401 when unauthenticated", async () => {
-    const res = await request(app).get("/api/users");
+    const res = await request(app).get("/api/v1/users");
     expect(res.status).toBe(401);
   });
 
@@ -77,7 +83,7 @@ describe("GET /api/users", () => {
       role: "customer",
     });
     const res = await request(app)
-      .get("/api/users")
+      .get("/api/v1/users")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(403);
     await cleanupUsers(`${PREFIX}forbidden`);
@@ -89,7 +95,7 @@ describe("GET /api/users", () => {
       role: "admin",
     });
     const res = await request(app)
-      .get("/api/users?page=1&limit=10")
+      .get("/api/v1/users?page=1&limit=10")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -107,7 +113,7 @@ describe("GET /api/users", () => {
       role: "admin",
     });
     const res = await request(app)
-      .get("/api/users?role=customer")
+      .get("/api/v1/users?role=customer")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
     const roles = (res.body.data as { role: string }[]).map((u) => u.role);
@@ -118,7 +124,7 @@ describe("GET /api/users", () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("POST /api/users  (create admin)", () => {
+describe("POST /api/v1/users  (create admin)", () => {
   const PREFIX = "createadmin_";
 
   afterAll(() => cleanupUsers(PREFIX));
@@ -129,7 +135,7 @@ describe("POST /api/users  (create admin)", () => {
       role: "admin",
     });
     const res = await request(app)
-      .post("/api/users")
+      .post("/api/v1/users")
       .set("Authorization", `Bearer ${token}`)
       .send({ email: `${PREFIX}new@test.com`, firstName: "A", lastName: "B", role: "admin" });
     expect(res.status).toBe(403);
@@ -142,7 +148,7 @@ describe("POST /api/users  (create admin)", () => {
       role: "super_admin",
     });
     const res = await request(app)
-      .post("/api/users")
+      .post("/api/v1/users")
       .set("Authorization", `Bearer ${token}`)
       .send({
         email:     `${PREFIX}newadmin@test.com`,
@@ -164,7 +170,7 @@ describe("POST /api/users  (create admin)", () => {
     });
     // First create
     await request(app)
-      .post("/api/users")
+      .post("/api/v1/users")
       .set("Authorization", `Bearer ${token}`)
       .send({
         email:     `${PREFIX}dup@test.com`,
@@ -174,7 +180,7 @@ describe("POST /api/users  (create admin)", () => {
       });
     // Second create — same email
     const res = await request(app)
-      .post("/api/users")
+      .post("/api/v1/users")
       .set("Authorization", `Bearer ${token}`)
       .send({
         email:     `${PREFIX}dup@test.com`,
@@ -192,7 +198,7 @@ describe("POST /api/users  (create admin)", () => {
       role: "super_admin",
     });
     const res = await request(app)
-      .post("/api/users")
+      .post("/api/v1/users")
       .set("Authorization", `Bearer ${token}`)
       .send({
         email:     `${PREFIX}illegal@test.com`,
@@ -207,7 +213,7 @@ describe("POST /api/users  (create admin)", () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("PATCH /api/users/:id/role", () => {
+describe("PATCH /api/v1/users/:id/role", () => {
   const PREFIX = "changerole_";
 
   afterAll(() => cleanupUsers(PREFIX));
@@ -223,7 +229,7 @@ describe("PATCH /api/users/:id/role", () => {
     });
 
     const res = await request(app)
-      .patch(`/api/users/${targetId}/role`)
+      .patch(`/api/v1/users/${targetId}/role`)
       .set("Authorization", `Bearer ${token}`)
       .send({ role: "admin" });
 
@@ -237,7 +243,7 @@ describe("PATCH /api/users/:id/role", () => {
       role: "super_admin",
     });
     const res = await request(app)
-      .patch(`/api/users/${userId}/role`)
+      .patch(`/api/v1/users/${userId}/role`)
       .set("Authorization", `Bearer ${token}`)
       .send({ role: "admin" });
     expect(res.status).toBe(400);
@@ -253,7 +259,7 @@ describe("PATCH /api/users/:id/role", () => {
       role: "customer",
     });
     const res = await request(app)
-      .patch(`/api/users/${targetId}/role`)
+      .patch(`/api/v1/users/${targetId}/role`)
       .set("Authorization", `Bearer ${token}`)
       .send({ role: "admin" });
     expect(res.status).toBe(403);
@@ -262,7 +268,7 @@ describe("PATCH /api/users/:id/role", () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("PATCH /api/users/:id/toggle", () => {
+describe("PATCH /api/v1/users/:id/toggle", () => {
   const PREFIX = "toggle_";
 
   afterAll(() => cleanupUsers(PREFIX));
@@ -277,7 +283,7 @@ describe("PATCH /api/users/:id/toggle", () => {
       role: "customer",
     });
     const res = await request(app)
-      .patch(`/api/users/${userId}/toggle`)
+      .patch(`/api/v1/users/${userId}/toggle`)
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.data.isActive).toBe(false);
@@ -293,7 +299,7 @@ describe("PATCH /api/users/:id/toggle", () => {
       role: "admin",
     });
     const res = await request(app)
-      .patch(`/api/users/${userId}/toggle`)
+      .patch(`/api/v1/users/${userId}/toggle`)
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(403);
   });
@@ -308,7 +314,7 @@ describe("PATCH /api/users/:id/toggle", () => {
       role: "admin",
     });
     const res = await request(app)
-      .patch(`/api/users/${userId}/toggle`)
+      .patch(`/api/v1/users/${userId}/toggle`)
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
   });
@@ -319,7 +325,7 @@ describe("PATCH /api/users/:id/toggle", () => {
       role: "admin",
     });
     const res = await request(app)
-      .patch(`/api/users/${userId}/toggle`)
+      .patch(`/api/v1/users/${userId}/toggle`)
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(400);
   });
@@ -327,7 +333,7 @@ describe("PATCH /api/users/:id/toggle", () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("DELETE /api/users/:id", () => {
+describe("DELETE /api/v1/users/:id", () => {
   const PREFIX = "delete_";
 
   afterAll(() => cleanupUsers(PREFIX));
@@ -342,7 +348,7 @@ describe("DELETE /api/users/:id", () => {
       role: "customer",
     });
     const res = await request(app)
-      .delete(`/api/users/${userId}`)
+      .delete(`/api/v1/users/${userId}`)
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
   });
@@ -357,7 +363,7 @@ describe("DELETE /api/users/:id", () => {
       role: "admin",
     });
     const res = await request(app)
-      .delete(`/api/users/${userId}`)
+      .delete(`/api/v1/users/${userId}`)
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(403);
   });
@@ -368,7 +374,7 @@ describe("DELETE /api/users/:id", () => {
       role: "super_admin",
     });
     const res = await request(app)
-      .delete(`/api/users/${userId}`)
+      .delete(`/api/v1/users/${userId}`)
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(400);
   });
@@ -379,7 +385,7 @@ describe("DELETE /api/users/:id", () => {
       role: "super_admin",
     });
     const res = await request(app)
-      .delete("/api/users/00000000-0000-0000-0000-000000000000")
+      .delete("/api/v1/users/00000000-0000-0000-0000-000000000000")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(404);
   });
@@ -387,7 +393,7 @@ describe("DELETE /api/users/:id", () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("GET /api/users/audit-logs", () => {
+describe("GET /api/v1/users/audit-logs", () => {
   const PREFIX = "auditlogs_";
 
   afterAll(() => cleanupUsers(PREFIX));
@@ -398,7 +404,7 @@ describe("GET /api/users/audit-logs", () => {
       role: "admin",
     });
     const res = await request(app)
-      .get("/api/users/audit-logs")
+      .get("/api/v1/users/audit-logs")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(403);
   });
@@ -409,7 +415,7 @@ describe("GET /api/users/audit-logs", () => {
       role: "super_admin",
     });
     const res = await request(app)
-      .get("/api/users/audit-logs?page=1&limit=5")
+      .get("/api/v1/users/audit-logs?page=1&limit=5")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -423,7 +429,7 @@ describe("GET /api/users/audit-logs", () => {
       role: "super_admin",
     });
     const res = await request(app)
-      .get("/api/users/audit-logs?action=ADMIN_CREATED")
+      .get("/api/v1/users/audit-logs?action=ADMIN_CREATED")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
     const actions = (res.body.data as { action: string }[]).map(
