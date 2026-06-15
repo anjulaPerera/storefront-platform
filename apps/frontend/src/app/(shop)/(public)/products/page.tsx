@@ -6,6 +6,8 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { FadeIn } from "@/components/motion/FadeIn";
 
+console.log("Products List Page");
+
 interface SearchParams {
   page?: string;
   limit?: string;

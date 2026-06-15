@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import multer from "multer";
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -11,6 +12,18 @@ export function errorMiddleware(
   res: Response,
   _next: NextFunction,
 ): void {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "INVALID_FILE",
+            message: err.message,
+          },
+        });
+        return;
+      }
+    }
   const statusCode = err.statusCode ?? 500;
   const code = err.code ?? "INTERNAL_ERROR";
 

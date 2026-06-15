@@ -147,7 +147,7 @@ export default async function CategoryPage({
               {category.name}
             </h1>
             {category.description && (
-              <p className="text-muted max-w-lg mx-auto text-lg">
+              <p className="text-black max-w-lg mx-auto text-lg">
                 {category.description}
               </p>
             )}

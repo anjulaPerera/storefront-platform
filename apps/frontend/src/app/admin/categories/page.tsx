@@ -150,7 +150,7 @@ const {
             {
               label: "Slug",
               render: (c) => (
-                <code className="text-xs text-muted bg-gray-50 px-2 py-1 rounded">
+                <code className="text-xs text-white bg-gray-700 px-2 py-1 rounded">
                   {c.slug}
                 </code>
               ),

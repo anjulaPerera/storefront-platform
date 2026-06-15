@@ -1,0 +1,8 @@
+Modify Discounts Admin Modal for better styling
+Test Discounts
+There is no super admin used, lets create super admin and give him the capability to add new admins
+Use google login for customers
+Stay Signed in option
+Not sure where we get reviews from, or the use of reviews page in admin dashboard
+Test enquiries
+Use image cards as slideshow

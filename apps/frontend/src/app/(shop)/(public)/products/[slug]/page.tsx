@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { tenantConfig } from "@storefront/config";
 import { apiFetch } from "@/lib/api";
@@ -9,6 +8,7 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { WishlistButton } from "@/components/product/WishlistButton";
 import { EnquiryButton } from "@/components/product/EnquiryButton";
 import { ReviewSection } from "@/components/product/ReviewSection";
+import { ProductImageGallery } from "../ProductImageGallery";
 
 interface Product {
   id: string;
@@ -43,6 +43,7 @@ export async function generateMetadata({
     const product = await apiFetch<Product>(`/products/${slug}`, {
       next: { revalidate: 600 },
     });
+    console.log(JSON.stringify(product, null, 2));
     return {
       title: product.metaTitle ?? product.name,
       description: product.metaDescription ?? product.description ?? undefined,
@@ -124,34 +125,13 @@ export default async function ProductDetailPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
         {/* Image */}
-        <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-50">
-          {product.thumbnail ? (
-            <Image
-              src={product.thumbnail}
-              alt={product.name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              priority
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-300">
-              <svg
-                className="w-24 h-24"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
+        <ProductImageGallery
+          productName={product.name}
+          images={[
+            ...(product.thumbnail ? [product.thumbnail] : []),
+            ...product.images.filter((img) => img !== product.thumbnail),
+          ]}
+        />
 
         {/* Details */}
         <div className="flex flex-col">
@@ -261,7 +241,7 @@ export default async function ProductDetailPage({
                 {specRows.map((row, idx) => (
                   <tr
                     key={row.label}
-                    className={idx % 2 === 0 ? "bg-gray-600" : "bg-gray-700"}
+                    className={idx % 2 === 0 ? "bg-gray-800" : "bg-gray-900"}
                   >
                     <td className="px-4 py-3 text-white w-1/3 font-bold">
                       {row.label}

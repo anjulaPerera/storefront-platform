@@ -7,7 +7,7 @@ import Link from "next/link";
 import { tenantConfig } from "@storefront/config";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
-import { useWishlistStore } from "@/store/wishlist.store"; 
+import { useWishlistStore } from "@/store/wishlist.store";
 
 interface WishlistItem {
   id: string;
@@ -31,47 +31,48 @@ export default function WishlistPage() {
   const { currencySymbol } = tenantConfig.identity;
   const removeFromStore = useWishlistStore((s) => s.remove);
 
-useEffect(() => {
-  console.log("ITEMS CHANGED", items);
-}, [items]);
+  useEffect(() => {
+    console.log("ITEMS CHANGED", items);
+  }, [items]);
 
   useEffect(() => {
     // Wait for session restore to complete before deciding to redirect.
     // Without this, a page refresh sees user=null for ~200ms and bounces
     // to /login even though the session is perfectly valid.
- console.log("AUTH STATE", {
-   user,
-   accessToken,
-   isHydrated,
-   isLoading,
- });
-
+    console.log("AUTH STATE", {
+      user,
+      accessToken,
+      isHydrated,
+      isLoading,
+    });
 
     if (!isHydrated || isLoading) return;
     if (!user) {
       router.push("/login");
       return;
     }
-     if (!accessToken) {
-       setLoading(false); 
-       return;
-     }
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
 
     api.wishlist
       .get(accessToken)
       .then((data) => setItems(data as WishlistItem[]))
-      .catch((err) => {console.error("WISHLIST ERROR", err);})
+      .catch((err) => {
+        console.error("WISHLIST ERROR", err);
+      })
       .finally(() => setLoading(false));
   }, [user, accessToken, isHydrated, isLoading, router]);
 
   async function removeItem(productId: string) {
     if (!accessToken) return;
-      try {
-        await removeFromStore(productId, accessToken);
-        setItems((prev) => prev.filter((i) => i.productId !== productId));
-      } catch {
-        // store already rolls back productIds on failure
-      }
+    try {
+      await removeFromStore(productId, accessToken);
+      setItems((prev) => prev.filter((i) => i.productId !== productId));
+    } catch {
+      // store already rolls back productIds on failure
+    }
   }
 
   if (loading) {
@@ -143,6 +144,15 @@ useEffect(() => {
                       className="object-cover"
                       sizes="25vw"
                     />
+                    // <Image
+                    //   src={item.product.thumbnail}
+                    //   alt={item.product.name}
+                    //   fill
+                    //   className="object-cover"
+                    //   width={80} // Your base width
+                    //   height={80} // Your base height
+                    //   style={{ height: "auto", width: "auto" }} // 💡 Add this to preserve aspect ratio
+                    // />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-gray-200">
                       <svg
