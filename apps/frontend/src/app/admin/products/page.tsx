@@ -8,9 +8,9 @@ import { api, ApiError } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AttributeEditor } from "@/components/admin/AttributeEditor";
-import { ImageUpload } from "../ImageUpload";
 import { Badge } from "@/components/ui/Badge";
 import { useAdminData } from "@/hooks/useAdminData";
+import { SmartImageUpload } from './../SmartImageUpload';
 
 interface Product {
   id: string;
@@ -701,11 +701,7 @@ export default function AdminProductsPage() {
           {/* ─── Thumbnail upload + External Link ─────────────────────────── */}
           <div className="grid grid-cols-2 gap-4 items-start">
             <div className="col-span-2">
-              <ImageUpload
-                label="Product Thumbnail"
-                value={form.thumbnail}
-                onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))}
-              />
+              <SmartImageUpload values={[form.thumbnail]} onChange={(urls) => urls[0]}/>
             </div>
 
             <div className="col-span-2">
