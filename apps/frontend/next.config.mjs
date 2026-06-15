@@ -6,10 +6,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "placehold.co" },
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-      },
+      { protocol: "https", hostname: "res.cloudinary.com" },
       {
         protocol: "https",
         hostname: "fdn2.gsmarena.com",
@@ -21,14 +18,33 @@ const nextConfig = {
     contentDispositionType: "attachment",
   },
 
+  webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      sharp$: false,
+      // Ensure node bindings never get bundled.
+      "onnxruntime-node$": false,
+    };
+
+    // Prevent Next/Webpack from parsing onnxruntime-web's WebGPU ESM bundle at build time.
+    // The AI feature is client-only ("use client"), so it will be loaded in the browser.
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        // These paths are where the problematic `ort.webgpu.bundle.min.mjs` lives.
+        "onnxruntime-web/webgpu/.*$": false,
+      };
+    }
+
+    return config;
+  },
+
   async rewrites() {
     const backendOrigin = (() => {
       const raw =
         process.env.BACKEND_URL ??
         process.env.NEXT_PUBLIC_API_URL ??
         "http://127.0.0.1:4000";
-      // Strip trailing /api/v1 if someone accidentally put it in the env —
-      // the rewrite preserves :path* which already includes it.
       return raw.replace(/\/api\/v1\/?$/, "");
     })();
 

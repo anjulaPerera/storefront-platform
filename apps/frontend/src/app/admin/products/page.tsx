@@ -8,9 +8,9 @@ import { api, ApiError } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AttributeEditor } from "@/components/admin/AttributeEditor";
-import { SmartImageUpload } from "../SmartImageUpload";
 import { Badge } from "@/components/ui/Badge";
 import { useAdminData } from "@/hooks/useAdminData";
+import SmartImageUpload from './../SmartImageUpload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -895,12 +895,8 @@ export default function AdminProductsPage() {
               <SmartImageUpload
                 label="Product Images"
                 values={form.images}
-                onChange={(urls) =>
-                  setForm((f) => ({
-                    ...f,
-                    images: urls,
-                    thumbnail: urls[0] ?? "",
-                  }))
+                onChange={(urls: string[]) =>
+                  setForm((f) => ({ ...f, images: urls }))
                 }
               />
             </div>

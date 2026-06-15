@@ -7,3 +7,5 @@ allowBuilds:
   bcrypt: false
   esbuild: false
   protobufjs: false
+  onnxruntime-node: true
+  sharp: true

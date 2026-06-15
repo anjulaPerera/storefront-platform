@@ -38,6 +38,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
+  rembg-service:
+    build:
+      context: ./services/image-processor
+      dockerfile: Dockerfile
+    container_name: storefront-rembg-service
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+    restart: always
 volumes:
   postgres_data:
