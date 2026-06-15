@@ -444,4 +444,63 @@ export const api = {
     deleteUser: (id: string, token: string) =>
       apiFetch(`/users/${id}`, { method: "DELETE", token, cache: "no-store" }),
   },
+  upload: {
+    /**
+     * Uploads a single image file to the backend.
+     * apiFetch cannot be used here because it forces Content-Type: application/json.
+     * FormData uploads need the browser to set multipart/form-data + boundary itself.
+     *
+     * @param file          - The image File object to upload
+     * @param removeBackground - Whether to apply AI background removal + gradient
+     * @param token         - Admin access token
+     * @returns             - The final CDN/storage URL string
+     */
+    image: async (
+      file: File,
+      removeBackground: boolean,
+      token: string,
+    ): Promise<string> => {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("removeBackground", String(removeBackground));
+
+      // Build the URL the same way apiFetch does (handles both browser + SSR)
+      const rawHref = `${BASE_URL}/upload/image`;
+      const url = rawHref.startsWith("http")
+        ? rawHref
+        : `${typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"}${rawHref}`;
+
+      const res = await fetch(url, {
+        method: "POST",
+        // ← No Content-Type header: browser sets multipart/form-data + boundary
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: fd,
+      });
+
+      if (!res.ok) {
+        let code = "UPLOAD_FAILED";
+        let message = `Upload failed (HTTP ${res.status})`;
+        try {
+          const body = (await res.json()) as {
+            error?: { code: string; message: string };
+          };
+          if (body.error) {
+            code = body.error.code;
+            message = body.error.message;
+          }
+        } catch {
+          /* ignore */
+        }
+        throw new ApiError(message, code, res.status);
+      }
+
+      const json = (await res.json()) as {
+        success: boolean;
+        data: { url: string };
+      };
+      return json.data.url;
+    },
+  },
 };

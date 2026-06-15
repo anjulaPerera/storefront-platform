@@ -16,6 +16,7 @@ import { usersRouter } from "@/modules/users/users.router";
 import { configRouter } from "@/modules/config/config.router";
 import { aiRouter } from "@/modules/ai/ai.router";
 import { adminRouter } from "@/modules/admin/admin.router";
+import uploadRouter from "./modules/upload/upload.router";
 
 
 
@@ -54,6 +55,7 @@ app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1/users", usersRouter);
   app.use("/api/v1/config", configRouter);
   app.use("/api/v1/ai", aiRouter);
+  app.use("/api/v1", uploadRouter);
 
   app.use(errorMiddleware);
   return app;

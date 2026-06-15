@@ -5,3 +5,4 @@ Use google login for customers
 Stay Signed in option
 Not sure where we get reviews from, or the use of reviews page in admin dashboard
 Test enquiries
+Use image cards as slideshow

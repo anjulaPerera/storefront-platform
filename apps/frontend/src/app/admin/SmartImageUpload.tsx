@@ -10,11 +10,11 @@ const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SmartImageUploadProps {
-  /** All saved image URLs — first entry is the thumbnail */
   values: string[];
-  /** Called with the full updated array after any change */
   onChange: (urls: string[]) => void;
   label?: string;
+  maxImages?: number;
+  onUpload?: (blob: Blob, filename: string) => Promise<string>;
 }
 
 // ─── Cloudinary uploader ─────────────────────────────────────────────────────
@@ -140,6 +140,8 @@ export function SmartImageUpload({
   values,
   onChange,
   label = "Product Images",
+  maxImages,
+  onUpload,
 }: SmartImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -195,43 +197,44 @@ export function SmartImageUpload({
 
   // ── Upload the AI-processed result ───────────────────────────────────────
 
-  async function confirmAiUpload() {
-    if (!processedResult) return;
-    setUploading(true);
-    setUploadError("");
-    try {
-      const url = await uploadToCloudinary(
-        processedResult.blob,
-        `product-ai-${Date.now()}.jpg`,
-      );
-      onChange([...values, url]);
-      resetProcess();
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed.");
-    } finally {
-      setUploading(false);
-    }
+async function confirmAiUpload() {
+  if (!processedResult) return;
+  setUploading(true);
+  setUploadError("");
+  try {
+    const filename = `product-ai-${Date.now()}.jpg`;
+    // onUpload (backend) takes priority; Cloudinary is the local fallback
+    const url = onUpload
+      ? await onUpload(processedResult.blob, filename)
+      : await uploadToCloudinary(processedResult.blob, filename);
+    onChange([...values, url]);
+    resetProcess();
+  } catch (err) {
+    setUploadError(err instanceof Error ? err.message : "Upload failed.");
+  } finally {
+    setUploading(false);
   }
+}
 
   // ── Upload the original file, bypassing AI ───────────────────────────────
 
-  async function skipAiAndUpload() {
-    if (!originalFile) return;
-    setUploading(true);
-    setUploadError("");
-    try {
-      const url = await uploadToCloudinary(
-        originalFile,
-        `product-${Date.now()}-${originalFile.name}`,
-      );
-      onChange([...values, url]);
-      resetProcess();
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed.");
-    } finally {
-      setUploading(false);
-    }
+async function skipAiAndUpload() {
+  if (!originalFile) return;
+  setUploading(true);
+  setUploadError("");
+  try {
+    const filename = `product-${Date.now()}-${originalFile.name}`;
+    const url = onUpload
+      ? await onUpload(originalFile, filename)
+      : await uploadToCloudinary(originalFile, filename);
+    onChange([...values, url]);
+    resetProcess();
+  } catch (err) {
+    setUploadError(err instanceof Error ? err.message : "Upload failed.");
+  } finally {
+    setUploading(false);
   }
+}
 
   // ── Image management ─────────────────────────────────────────────────────
 
@@ -265,7 +268,11 @@ export function SmartImageUpload({
       {/* ── IDLE / ERROR — drop zone ── */}
       {isIdle && (
         <div
-          onClick={() => !uploading && inputRef.current?.click()}
+          onClick={() => {
+            const atLimit =
+              maxImages !== undefined && values.length >= maxImages;
+            if (!uploading && !atLimit) inputRef.current?.click();
+          }}
           onDragOver={(e) => {
             e.preventDefault();
             setDragOver(true);
