@@ -128,7 +128,7 @@ const products = data?.products ?? [];
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Discounts</h1>
+        <h1 className="text-2xl font-bold text-white/80">Discounts</h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"

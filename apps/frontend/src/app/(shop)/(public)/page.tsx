@@ -211,6 +211,13 @@ export default async function HomePage() {
             )}
           </div>
 
+           <Link
+                  href="/products"
+                  className="text-sm font-medium text-white/60 hover:text-white transition-colors pt-6"
+                >
+                  View all products ➡
+                </Link>
+
           {/* Trust stats */}
           <div
             className="flex flex-wrap items-center justify-center gap-8 mt-16 animate-fade-up"

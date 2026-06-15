@@ -21,6 +21,8 @@ const nextConfig = {
     contentDispositionType: "attachment",
   },
 
+  turbopack: {},
+
   async rewrites() {
     const backendOrigin = (() => {
       const raw =

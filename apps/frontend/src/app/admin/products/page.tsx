@@ -1,16 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { tenantConfig } from "@storefront/config";
 import { useAuthStore } from "@/store/auth.store";
 import { api, ApiError } from "@/lib/api";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AttributeEditor } from "@/components/admin/AttributeEditor";
-import { ImageUpload } from "../ImageUpload";
 import { Badge } from "@/components/ui/Badge";
 import { useAdminData } from "@/hooks/useAdminData";
+import { SmartImageUpload } from './../SmartImageUpload';
 
 interface Product {
   id: string;
@@ -20,6 +20,7 @@ interface Product {
   stockQuantity: number;
   brand: string | null;
   thumbnail: string | null;
+  images: string[];
   isActive: boolean;
   isFeatured: boolean;
   categoryId: string;
@@ -54,7 +55,8 @@ const EMPTY_FORM = {
   stockQuantity: "0",
   sku: "",
   brand: "",
-  thumbnail: "",
+  // thumbnail: "",
+  images: [] as string[],
   externalLink: "",
   isFeatured: false,
   isActive: true,
@@ -74,6 +76,8 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -85,12 +89,7 @@ export default function AdminProductsPage() {
     useState<GeneratedContent | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("action") === "new") {
-      setShowForm(true);
-    }
-  }, []);
+
 
   const { data, loading, reload } = useAdminData(
     (token) =>
@@ -101,8 +100,54 @@ export default function AdminProductsPage() {
     accessToken,
   );
 
-  const products = data?.products ?? [];
+  const products = useMemo(() => data?.products ?? [], [data]);
   const categories = data?.categories ?? [];
+
+useEffect(() => {
+  if (!showForm || editing) {
+    setSimilarProducts((prev) => (prev.length === 0 ? prev : []));
+    return;
+  }
+
+  const query = form.name.trim().toLowerCase();
+
+  if (query.length < 3) {
+    setSimilarProducts([]);
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    const scored = products
+      .map((p) => {
+        const name = p.name.toLowerCase();
+        // Exact > starts-with > contains
+        const score =
+          name === query
+            ? 3
+            : name.startsWith(query)
+              ? 2
+              : name.includes(query)
+                ? 1
+                : 0;
+        return { p, score };
+      })
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(({ p }) => p);
+
+    setSimilarProducts(scored);
+  }, 300); // debounce
+
+  return () => clearTimeout(timer);
+}, [form.name, showForm, editing, products]);
+
+    useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("action") === "new") {
+        setShowForm(true);
+      }
+    }, []);
 
   // Reset to page 1 whenever the product list reloads
   useEffect(() => {
@@ -122,6 +167,7 @@ export default function AdminProductsPage() {
     setGenerateError("");
     setGeneratedPreview(null);
     setShowPreview(false);
+    setSimilarProducts([]);
     setShowForm(true);
   }
 
@@ -135,7 +181,9 @@ export default function AdminProductsPage() {
       stockQuantity: String(p.stockQuantity),
       sku: p.sku ?? "",
       brand: p.brand ?? "",
-      thumbnail: p.thumbnail ?? "",
+      // thumbnail: p.thumbnail ?? "",
+      images:
+        p.images?.length > 0 ? p.images : p.thumbnail ? [p.thumbnail] : [],
       externalLink: p.externalLink ?? "",
       isFeatured: p.isFeatured,
       isActive: p.isActive,
@@ -147,6 +195,7 @@ export default function AdminProductsPage() {
     setGenerateError("");
     setGeneratedPreview(null);
     setShowPreview(false);
+    setSimilarProducts([]);
     setShowForm(true);
   }
 
@@ -234,7 +283,9 @@ export default function AdminProductsPage() {
       stockQuantity: parseInt(form.stockQuantity, 10),
       sku: form.sku || null,
       brand: form.brand || null,
-      thumbnail: form.thumbnail || null,
+      // thumbnail: form.thumbnail || null,
+      thumbnail: form.images[0] || null,
+      images: form.images,
       externalLink: form.externalLink || null,
       isFeatured: form.isFeatured,
       isActive: form.isActive,
@@ -306,7 +357,8 @@ export default function AdminProductsPage() {
                         alt={p.name}
                         width={36}
                         height={36}
-                        className="rounded-lg object-cover"
+                        className="rounded-lg object-cover flex-shrink-0"
+                        style={{ width: 36, height: 36 }}
                       />
                     ) : (
                       <div className="w-9 h-9 rounded-lg bg-gray-100" />
@@ -471,6 +523,7 @@ export default function AdminProductsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             {/* Name + AI button */}
+            {/* Name + AI button */}
             <div className="col-span-2">
               <label htmlFor="prod-name" className={labelClass}>
                 Product Name *
@@ -492,11 +545,11 @@ export default function AdminProductsPage() {
                   disabled={generating || !form.name.trim()}
                   title="Generate description, SEO fields, and key features with AI"
                   className="
-                    flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
-                    bg-violet-600 hover:bg-violet-700 text-white
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                    transition-colors whitespace-nowrap flex-shrink-0
-                  "
+        flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+        bg-violet-600 hover:bg-violet-700 text-white
+        disabled:opacity-50 disabled:cursor-not-allowed
+        transition-colors whitespace-nowrap flex-shrink-0
+      "
                 >
                   {generating ? (
                     <>
@@ -523,14 +576,114 @@ export default function AdminProductsPage() {
                     </>
                   ) : (
                     <>
-                      <span>✨</span>
-                      AI Fill
+                      <span>✨</span> AI Fill
                     </>
                   )}
                 </button>
               </div>
+
               {generateError && (
                 <p className="text-xs text-red-400 mt-1">{generateError}</p>
+              )}
+
+              {/* ── Similar products panel ─────────────────────────────────── */}
+              {similarProducts.length > 0 && (
+                <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/5 overflow-hidden">
+                  {/* Header */}
+                  <div className="px-3 py-2 border-b border-amber-500/10 flex items-center justify-between">
+                    <p className="text-xs font-medium text-amber-300/80 flex items-center gap-1.5">
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                        />
+                      </svg>
+                      {similarProducts.length === 1
+                        ? "1 similar product already exists"
+                        : `${similarProducts.length} similar products already exist`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSimilarProducts([])}
+                      className="text-white/20 hover:text-white/50 transition-colors text-sm leading-none"
+                      aria-label="Dismiss"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Product rows */}
+                  <div className="divide-y divide-white/5">
+                    {similarProducts.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.02] transition-colors"
+                      >
+                        {p.thumbnail ? (
+                          <Image
+                            src={p.thumbnail}
+                            alt={p.name}
+                            width={36}
+                            height={36}
+                            className="rounded-lg object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-lg bg-white/5 flex-shrink-0 flex items-center justify-center">
+                            <svg
+                              className="w-4 h-4 text-white/20"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.5}
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                              />
+                            </svg>
+                          </div>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white/70 truncate font-medium">
+                            {p.name}
+                          </p>
+                          <p className="text-xs text-white/30 truncate">
+                            {p.categoryName ?? "Uncategorised"}
+                            {" · "}
+                            {currencySymbol}
+                            {p.price.toLocaleString()}
+                            {p.stockQuantity === 0 && (
+                              <span className="ml-1.5 text-red-400/70">
+                                · Out of stock
+                              </span>
+                            )}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => openEdit(p)}
+                          className="
+                flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium
+                bg-amber-500/15 text-amber-300 hover:bg-amber-500/25
+                transition-colors border border-amber-500/20
+              "
+                        >
+                          Load &amp; Edit
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
@@ -701,10 +854,21 @@ export default function AdminProductsPage() {
           {/* ─── Thumbnail upload + External Link ─────────────────────────── */}
           <div className="grid grid-cols-2 gap-4 items-start">
             <div className="col-span-2">
-              <ImageUpload
-                label="Product Thumbnail"
-                value={form.thumbnail}
-                onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))}
+              <SmartImageUpload
+                values={form.images}
+                onChange={(urls) => setForm((f) => ({ ...f, images: urls }))}
+                onUpload={async (blob, filename) => {
+                  if (!accessToken) throw new Error("Not authenticated.");
+                  // File extends Blob, so this works for both the AI-processed blob
+                  // and the original File from skipAiAndUpload
+                  const file =
+                    blob instanceof File
+                      ? blob
+                      : new File([blob], filename, { type: blob.type });
+                  // removeBackground=false: in-browser AI already handled it (or user skipped it)
+                  return api.upload.image(file, false, accessToken);
+                }}
+                maxImages={8}
               />
             </div>
 
