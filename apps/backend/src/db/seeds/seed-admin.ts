@@ -8,6 +8,7 @@ async function seedAdmin(): Promise<void> {
   try {
     const email = process.env.ADMIN_EMAIL ?? "admin@rangaphones.lk";
     const password = process.env.ADMIN_PASSWORD ?? "Admin@123456";
+    //a@b.lk    -------        500c3ea7a849bae40fe46884e1aa666f
     const firstName = "Shop";
     const lastName = "Admin";
 

@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth.store";
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Role = "customer" | "admin" | "super_admin";
 import type { AuditLog, Meta, User } from "@storefront/types";
+import { GlassSelect } from "@/components/ui/GlassSelect";
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -92,7 +93,7 @@ function CreateAdminModal({
   if (tempPassword) {
     return (
       <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl">
+        <div className="admin-modal-surface w-1/3 max-w-md p-6">
           <h2 className="text-lg font-semibold mb-2 text-gray-900">
             Account Created
           </h2>
@@ -102,7 +103,7 @@ function CreateAdminModal({
             again.
           </p>
 
-          <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 mb-6">
+          <div className="rounded-lg bg-gray-50 border border-gray-500 px-4 py-3 mb-6">
             <p className="text-xs text-gray-400 mb-1">Temporary password</p>
             <p className="font-mono text-sm text-gray-900 break-all select-all">
               {tempPassword}
@@ -123,8 +124,8 @@ function CreateAdminModal({
   // ── Default: creation form ─────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl">
-        <h2 className="text-lg font-semibold mb-5 text-gray-900">
+      <div className="bg-gray-900 rounded-xl w-full max-w-md p-6 shadow-xl">
+        <h2 className="text-lg font-semibold mb-5 text-gray-100">
           Create Account
         </h2>
 
@@ -137,12 +138,12 @@ function CreateAdminModal({
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-100 mb-1">
                 First Name
               </label>
               <input
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-gray-900 w-full border border-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={form.firstName}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, firstName: e.target.value }))
@@ -150,12 +151,12 @@ function CreateAdminModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-100 mb-1">
                 Last Name
               </label>
               <input
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 value={form.lastName}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, lastName: e.target.value }))
@@ -165,13 +166,13 @@ function CreateAdminModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-100 mb-1">
               Email
             </label>
             <input
               required
               type="email"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-gray-900 border border-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.email}
               onChange={(e) =>
                 setForm((f) => ({ ...f, email: e.target.value }))
@@ -180,24 +181,20 @@ function CreateAdminModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-100 mb-1">
               Role
             </label>
-            <select
+            <GlassSelect
               aria-label="select-role"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.role}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  role: e.target.value as "admin" | "customer",
-                }))
+              onChange={(val) =>
+                setForm((f) => ({ ...f, role: val as "admin" | "customer" }))
               }
-              
-            >
-              <option value="admin">Admin</option>
-              <option value="customer">Customer</option>
-            </select>
+              options={[
+                { value: "customer", label: "Customer" },
+                { value: "admin", label: "Admin" },
+              ]}
+            />
             <p className="mt-1 text-xs text-gray-400">
               Super Admin accounts can only be created via database seed.
             </p>
@@ -207,7 +204,7 @@ function CreateAdminModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2 text-sm font-medium hover:bg-gray-50"
+              className="flex-1 border border-gray-500 text-gray-100 rounded-lg py-2 text-sm font-medium hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -242,7 +239,7 @@ function ConfirmModal({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2 text-sm font-medium hover:bg-gray-50"
+            className="flex-1 border border-gray-500 text-gray-700 rounded-lg py-2 text-sm font-medium hover:bg-gray-50"
           >
             Cancel
           </button>
@@ -411,7 +408,7 @@ export default function UsersPage() {
       {/* Header Container */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <h1 className="text-2xl font-bold text-white">User Management</h1>
           <p className="text-sm text-gray-500 mt-1">
             {isSuperAdmin
               ? "Super Admin — full access"
@@ -430,7 +427,7 @@ export default function UsersPage() {
 
       {/* Tabs Navigation */}
       {isSuperAdmin && (
-        <div className="mb-6 flex gap-1 border-b border-gray-200">
+        <div className="mb-6 flex gap-1 border-b border-gray-500">
           {(["users", "audit"] as const).map((t) => (
             <button
               key={t}
@@ -451,20 +448,22 @@ export default function UsersPage() {
       {tab === "users" && (
         <>
           <div className="flex gap-3 mb-4">
-            <select
+            <GlassSelect
               aria-label="Filter by role"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
+              onChange={(val) => {
+                setRoleFilter(val);
                 setPage(1);
               }}
-            >
-              <option value="">All Roles</option>
-              <option value="customer">Customer</option>
-              <option value="admin">Admin</option>
-              {isSuperAdmin && <option value="super_admin">Super Admin</option>}
-            </select>
+              options={[
+                { value: "", label: "All Roles" },
+                { value: "customer", label: "Customer" },
+                { value: "admin", label: "Admin" },
+                ...(isSuperAdmin
+                  ? [{ value: "super_admin", label: "Super Admin" }]
+                  : []),
+              ]}
+            />
           </div>
 
           {error && (
@@ -473,22 +472,18 @@ export default function UsersPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-gray-800 rounded-xl border border-gray-500 overflow-hidden">
             <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-700 border-b border-gray-500">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-gray-600">User</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Role</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-600">
+                  <th className="px-4 py-3 font-medium text-white">User</th>
+                  <th className="px-4 py-3 font-medium text-white">Role</th>
+                  <th className="px-4 py-3 font-medium text-white">Status</th>
+                  <th className="px-4 py-3 font-medium text-white">
                     Last Login
                   </th>
-                  <th className="px-4 py-3 font-medium text-gray-600">
-                    Joined
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-600 text-right">
+                  <th className="px-4 py-3 font-medium text-white">Joined</th>
+                  <th className="px-4 py-3 font-medium text-white text-right">
                     Actions
                   </th>
                 </tr>
@@ -510,32 +505,33 @@ export default function UsersPage() {
                   users.map((u) => (
                     <tr
                       key={u.id}
-                      className={`hover:bg-gray-50 transition-colors ${!u.isActive ? "opacity-60" : ""}`}
+                      className={`hover:bg-gray-700 transition-colors ${!u.isActive ? "opacity-60" : ""}`}
                     >
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-white">
                           {u.firstName} {u.lastName}
                         </div>
-                        <div className="text-xs text-gray-500">{u.email}</div>
+                        <div className="text-xs text-gray-400">{u.email}</div>
                       </td>
                       <td className="px-4 py-3">
                         {isSuperAdmin && u.role !== "super_admin" ? (
                           inlineRoleUser === u.id ? (
                             <div className="flex items-center gap-2">
-                              <select
+                              <GlassSelect
                                 aria-label="Change user role"
                                 value={u.role}
-                                className="border border-gray-300 rounded px-2 py-0.5 text-xs"
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   void handleRoleChange(
                                     u.id,
-                                    e.target.value as "customer" | "admin",
+                                    val as "customer" | "admin",
                                   )
                                 }
-                              >
-                                <option value="customer">customer</option>
-                                <option value="admin">admin</option>
-                              </select>
+                                options={[
+                                  { value: "customer", label: "customer" },
+                                  { value: "admin", label: "admin" },
+                                ]}
+                                className="w-32 text-xs !min-h-0 py-0" // Given an explicit width to properly align the arrow
+                              />
                               <button
                                 onClick={() => setInlineRoleUser(null)}
                                 className="text-gray-400 hover:text-gray-600 text-xs"
@@ -566,10 +562,10 @@ export default function UsersPage() {
                           {u.isActive ? "Active" : "Disabled"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
+                      <td className="px-4 py-3 text-xs text-gray-200">
                         {fmtDate(u.lastLoginAt)}
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
+                      <td className="px-4 py-3 text-xs text-gray-200">
                         {fmtDate(u.createdAt)}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -616,14 +612,14 @@ export default function UsersPage() {
                 <button
                   disabled={page === 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40"
+                  className="px-3 py-1 rounded border border-gray-500 hover:bg-gray-50 disabled:opacity-40"
                 >
                   Previous
                 </button>
                 <button
                   disabled={page === meta.totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40"
+                  className="px-3 py-1 rounded border border-gray-500 hover:bg-gray-50 disabled:opacity-40"
                 >
                   Next
                 </button>
@@ -637,27 +633,26 @@ export default function UsersPage() {
       {tab === "audit" && isSuperAdmin && (
         <>
           <div className="flex gap-3 mb-4">
-            <select
+            <GlassSelect
               aria-label="Action filter"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={actionFilter}
-              onChange={(e) => {
-                setActionFilter(e.target.value);
+              onChange={(val) => {
+                setActionFilter(val);
                 setLogsPage(1);
               }}
-            >
-              <option value="">All Actions</option>
-              {Object.entries(AUDIT_ACTION_LABELS).map(([key, val]) => (
-                <option key={key} value={key}>
-                  {val.label}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "All Actions" },
+                ...Object.entries(AUDIT_ACTION_LABELS).map(([key, val]) => ({
+                  value: key,
+                  label: val.label,
+                })),
+              ]}
+            />
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-500 overflow-hidden">
             <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 border-b border-gray-500">
                 <tr>
                   <th className="px-4 py-3 font-medium text-gray-600">
                     Action
@@ -732,14 +727,14 @@ export default function UsersPage() {
                 <button
                   disabled={logsPage === 1}
                   onClick={() => setLogsPage((p) => p - 1)}
-                  className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40"
+                  className="px-3 py-1 rounded border border-gray-500 hover:bg-gray-50 disabled:opacity-40"
                 >
                   Previous
                 </button>
                 <button
                   disabled={logsPage === logsMeta.totalPages}
                   onClick={() => setLogsPage((p) => p + 1)}
-                  className="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40"
+                  className="px-3 py-1 rounded border border-gray-500 hover:bg-gray-50 disabled:opacity-40"
                 >
                   Next
                 </button>

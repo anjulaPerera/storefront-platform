@@ -448,24 +448,43 @@ body {
 
     cursor: pointer;
 
-    background-image:
-        linear-gradient(45deg,
-            transparent 50%,
-            rgba(255, 255, 255, .65) 50%),
-        linear-gradient(135deg,
-            rgba(255, 255, 255, .65) 50%,
-            transparent 50%);
+    /* Glassy surface */
+    background:
+        linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.65) 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.65) 50%, transparent 50%),
+        linear-gradient(180deg,
+            rgba(255, 255, 255, 0.06) 0%,
+            rgba(255, 255, 255, 0.03) 100%);
 
     background-position:
         calc(100% - 18px) 50%,
-        calc(100% - 12px) 50%;
+        calc(100% - 12px) 50%,
+        0 0;
 
-    background-size: 6px 6px;
+    background-size:
+        6px 6px,
+        6px 6px,
+        100% 100%;
+
     background-repeat: no-repeat;
 
     padding-right: 3rem;
+
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
+.admin-select option {
+    background: #0B1220;
+    color: #F1F5F9;
+}
+
+/* ── Convenience alias: use this class alone on any <select> ── */
+.select-glass {
+    composes: admin-field admin-select;
+    /* CSS Modules only — skip if plain CSS */
+}
 .admin-select option {
     background: #0B1220;
     color: #F1F5F9;
@@ -508,4 +527,71 @@ body {
     filter: blur(120px);
 
     pointer-events: none;
+}
+
+.select-glass {
+    composes: admin-field admin-select;
+    /* CSS Modules only — skip if plain CSS */
+}
+
+/* Reusable glass select — use className="select-glass" on any <select> */
+.select-glass {
+    width: auto;
+    height: 48px;
+   -moz-appearance: none; 
+   -webkit-appearance: none;
+   appearance: none;
+    
+    
+    cursor: pointer;
+
+    background:
+        linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.65) 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.65) 50%, transparent 50%),
+        linear-gradient(180deg,
+            rgba(255, 255, 255, 0.06) 0%,
+            rgba(255, 255, 255, 0.03) 100%);
+
+    background-position:
+        calc(100% - 18px) 50%,
+        calc(100% - 12px) 50%,
+        0 0;
+
+    background-size: 6px 6px, 6px 6px, 100% 100%;
+    background-repeat: no-repeat;
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 0 3rem 0 1rem;
+
+    color: var(--text);
+    font-size: 0.9375rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+-webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    
+
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 4px 16px rgba(0, 0, 0, 0.25);
+
+    transition: all 0.25s ease;
+}
+
+.select-glass:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.select-glass:focus {
+    outline: none;
+    border-color: rgba(37, 99, 235, 0.55);
+    box-shadow:
+        0 0 0 4px rgba(37, 99, 235, 0.12),
+        0 0 25px rgba(37, 99, 235, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.select-glass option {
+    background: #0B1220;
+    color: #F1F5F9;
 }
