@@ -54,13 +54,13 @@ const {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Users</h1>
+        <h1 className="text-2xl font-bold text-white">Users</h1>
         <div className="flex gap-2">
           {["", "customer", "admin", "super_admin"].map((r) => (
             <button
               key={r}
               onClick={() => setFilter(r)}
-              className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${filter === r ? "bg-primary text-white" : "bg-surface border border-gray-200 text-muted hover:text-foreground"}`}
+              className={`px-3 py-1.5 text-xs font-weight-btn rounded-lg transition-colors ${filter === r ? "bg-primary text-white" : "bg-surface border border-gray-200 text-muted hover:text-foreground"}`}
             >
               {r || "All"}
             </button>

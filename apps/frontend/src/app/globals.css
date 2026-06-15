@@ -338,6 +338,9 @@ body {
     margin: 0 auto;
     padding: 0 1.5rem;
 }
+.font-weight-btn{
+    font-weight: 600;
+}
 
 @media (min-width: 640px) {
     .container-wide {
