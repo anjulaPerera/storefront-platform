@@ -50,7 +50,7 @@ jobs:
           restore-keys: nextjs-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --config.ignore-scripts=false
 
       - name: Lint
         run: pnpm --filter frontend lint
