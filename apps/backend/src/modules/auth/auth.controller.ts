@@ -57,6 +57,38 @@ export async function login(
   }
 }
 
+export async function googleLogin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { idToken } = req.body as { idToken?: string };
+
+    if (!idToken || typeof idToken !== "string") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "idToken is required",
+        },
+      });
+      return;
+    }
+
+    const { user, accessToken, refreshToken } =
+      await authService.googleLoginUser(idToken);
+
+    // Intentionally identical to the regular login response —
+    // the frontend login() and googleLogin() store actions work the same way.
+    res.cookie(COOKIE_NAME, refreshToken, cookieConfig);
+    res.json({ success: true, data: { user, accessToken } });
+  } catch (err) {
+    next(err);
+  }
+}
+ 
+
 export async function refresh(
   req: Request,
   res: Response,

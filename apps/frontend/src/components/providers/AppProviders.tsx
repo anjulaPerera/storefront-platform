@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useAuthStore } from "@/store/auth.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
-  // Use selectors to prevent unnecessary re-renders
   const hydrate = useAuthStore((s) => s.hydrate);
   const loadWishlist = useWishlistStore((s) => s.load);
 
@@ -17,7 +17,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     hasHydrated.current = true;
 
     void hydrate().then(() => {
-      // Use getState() so we don't subscribe to token changes here
       const token = useAuthStore.getState().accessToken;
       if (token) {
         void loadWishlist(token);
@@ -25,5 +24,12 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     });
   }, [hydrate, loadWishlist]);
 
-  return <>{children}</>;
+  // GoogleOAuthProvider is a context provider — it must wrap the entire tree
+  // so that GoogleLogin (used inside GoogleAuthButton) can read the client ID.
+  // AppProviders is already "use client", so no extra wrapper file needed.
+  return (
+    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+      {children}
+    </GoogleOAuthProvider>
+  );
 }

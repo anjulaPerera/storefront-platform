@@ -292,6 +292,41 @@ export const api = {
   },
 
   // Auth
+  // auth: {
+  //   login: (email: string, password: string) =>
+  //     apiFetch("/auth/login", {
+  //       method: "POST",
+  //       body: JSON.stringify({ email, password }),
+  //       credentials: "include",
+  //       cache: "no-store",
+  //     }),
+  //   register: (data: {
+  //     email: string;
+  //     password: string;
+  //     firstName: string;
+  //     lastName: string;
+  //   }) =>
+  //     apiFetch("/auth/register", {
+  //       method: "POST",
+  //       body: JSON.stringify(data),
+  //       cache: "no-store",
+  //     }),
+  //   me: (token: string) => apiFetch("/auth/me", { token, cache: "no-store" }),
+  //   logout: (token: string) =>
+  //     apiFetch("/auth/logout", {
+  //       method: "POST",
+  //       token,
+  //       credentials: "include",
+  //       cache: "no-store",
+  //     }),
+  //   refresh: () =>
+  //     apiFetch("/auth/refresh", {
+  //       method: "POST",
+  //       credentials: "include",
+  //       cache: "no-store",
+  //     }),
+  // },
+
   auth: {
     login: (email: string, password: string) =>
       apiFetch("/auth/login", {
@@ -300,6 +335,17 @@ export const api = {
         credentials: "include",
         cache: "no-store",
       }),
+
+    // ── NEW ──────────────────────────────────────────────────────────────────
+    googleLogin: (idToken: string) =>
+      apiFetch("/auth/google-login", {
+        method: "POST",
+        body: JSON.stringify({ idToken }),
+        credentials: "include",
+        cache: "no-store",
+      }),
+    // ─────────────────────────────────────────────────────────────────────────
+
     register: (data: {
       email: string;
       password: string;

@@ -5,6 +5,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { tenantConfig } from "@storefront/config";
 import { useAuthStore } from "@/store/auth.store";
+import { GoogleAuthButton } from "@/components/ui/GoogleAuthButton";
+import { User } from "@storefront/types";
 
 const STARS = Array.from({ length: 60 }, (_, i) => ({
   top: (i * 37) % 100,
@@ -16,27 +18,32 @@ const STARS = Array.from({ length: 60 }, (_, i) => ({
 
 export default function LoginPage() {
   const router = useRouter();
+  // const { login, isLoading } = useAuthStore();
   const { login, isLoading } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  setError("");
-  try {
-    await login(email, password);
-
-    const { user } = useAuthStore.getState();
-    if (user?.role === "admin" || user?.role === "super_admin") {
+  function handleAuthSuccess(user:User | null) {
+    if (!user) return;
+    if (user.role === "admin" || user.role === "super_admin") {
       router.push("/admin");
     } else {
       router.push("/");
     }
-  } catch {
-    setError("Invalid email or password. Please try again.");
   }
-}
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    try {
+      await login(email, password);
+      const currentUser = useAuthStore.getState().user;
+      handleAuthSuccess(currentUser);
+    } catch {
+      setError("Invalid email or password. Please try again.");
+    }
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -48,7 +55,6 @@ async function handleSubmit(e: React.FormEvent) {
             "radial-gradient(ellipse 80% 70% at 30% 40%, rgba(37,99,235,0.35) 0%, transparent 60%), radial-gradient(ellipse 50% 50% at 80% 80%, rgba(124,58,237,0.2) 0%, transparent 50%), #050816",
         }}
       >
-        {/* Stars */}
         {STARS.map((s, i) => (
           <div
             key={i}
@@ -64,7 +70,6 @@ async function handleSubmit(e: React.FormEvent) {
           />
         ))}
 
-        {/* Orbs */}
         <div
           className="orb w-80 h-80 bg-glow-blue opacity-20 animate-float top-[-10%] left-[-10%]"
           aria-hidden="true"
@@ -108,7 +113,6 @@ async function handleSubmit(e: React.FormEvent) {
         className="flex-1 flex items-center justify-center p-8 relative"
         style={{ background: "#080d1f" }}
       >
-        {/* Top glow */}
         <div
           className="absolute top-0 right-0 w-96 h-96 pointer-events-none"
           style={{
@@ -119,7 +123,6 @@ async function handleSubmit(e: React.FormEvent) {
         />
 
         <div className="w-full max-w-md relative z-10">
-          {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <span className="font-display font-bold text-white text-sm">
@@ -134,10 +137,29 @@ async function handleSubmit(e: React.FormEvent) {
           <h1 className="font-display font-black text-3xl text-white mb-2">
             Welcome back.
           </h1>
-          <p className="text-muted mb-10">
+          <p className="text-muted mb-8">
             Sign in to your account to continue.
           </p>
 
+          {/* ── Google sign-in ── */}
+          <GoogleAuthButton
+            onSuccess={() => {
+              const currentUser = useAuthStore.getState().user;
+              handleAuthSuccess(currentUser);
+            }}
+            label="Sign in with Google"
+          />
+
+          {/* ── Divider ── */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-xs text-dim font-medium">
+              or continue with email
+            </span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+
+          {/* ── Email/password form ── */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label

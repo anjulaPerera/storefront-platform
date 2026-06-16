@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { tenantConfig } from "@storefront/config";
 import { api, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { GoogleAuthButton } from "@/components/ui/GoogleAuthButton";
 
 const STARS = Array.from({ length: 60 }, (_, i) => ({
   top: (i * 37) % 100,
@@ -26,6 +27,10 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function handleAuthSuccess() {
+    router.push("/");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -164,10 +169,26 @@ export default function RegisterPage() {
           <h1 className="font-display font-black text-3xl text-white mb-2">
             Create account.
           </h1>
-          <p className="text-muted mb-10">
-            Join RangaPhones today — it&apos;s free.
+          <p className="text-muted mb-8">
+            Join {tenantConfig.identity.shopName} today — it&apos;s free.
           </p>
 
+          {/* ── Google sign-up ── */}
+          <GoogleAuthButton
+            onSuccess={handleAuthSuccess}
+            label="Sign up with Google"
+          />
+
+          {/* ── Divider ── */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-xs text-dim font-medium">
+              or register with email
+            </span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+
+          {/* ── Email/password form ── */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
