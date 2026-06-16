@@ -2,16 +2,9 @@
 
 import { create } from "zustand";
 import { api, ApiError } from "@/lib/api";
+import { User } from "@storefront/types";
 
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: "customer" | "admin" | "super_admin";
-  isActive: boolean;
-  emailVerified: boolean;
-}
+
 
 interface AuthState {
   user: User | null;
@@ -20,6 +13,7 @@ interface AuthState {
   isHydrated: boolean;
 
   login: (email: string, password: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>; // ← ADD
   logout: () => Promise<void>;
   setAuth: (user: User, token: string) => void;
   clearAuth: () => void;
@@ -42,6 +36,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const data = (await api.auth.login(email, password)) as {
+        user: User;
+        accessToken: string;
+      };
+      set({ user: data.user, accessToken: data.accessToken, isLoading: false });
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
+  },
+
+  googleLogin: async (idToken) => {
+    set({ isLoading: true });
+    try {
+      const data = (await api.auth.googleLogin(idToken)) as {
         user: User;
         accessToken: string;
       };

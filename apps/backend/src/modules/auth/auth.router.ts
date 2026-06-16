@@ -27,6 +27,8 @@ const authLimiter = rateLimit({
   },
 });
 
+authRouter.post("/google-login", authLimiter, c.googleLogin);
+
 authRouter.post("/register", authLimiter, validate(registerSchema), c.register);
 authRouter.post("/login", authLimiter, validate(loginSchema), c.login);
 authRouter.post("/refresh", c.refresh);

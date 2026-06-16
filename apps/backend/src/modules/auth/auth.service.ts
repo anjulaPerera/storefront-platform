@@ -11,6 +11,9 @@ import {
   sendPasswordResetEmail,
 } from "@/utils/email.utils";
 import { createError } from "@/middleware/error.middleware";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -120,12 +123,124 @@ export async function loginUser(
     );
   }
 
-  const valid = await comparePassword(password, row.password_hash as string);
-  if (!valid) throw INVALID;
+   if (!row.password_hash) {
+     throw createError(
+       "This account uses Google sign-in. Please continue with Google.",
+       400,
+       "USE_GOOGLE_LOGIN",
+     );
+   }
+
+   const valid = await comparePassword(password, row.password_hash as string);
+   if (!valid) throw INVALID;
 
 await pool.query("UPDATE users SET last_login_at = NOW() WHERE id = $1", [
   row.id,
 ]);
+
+  const accessToken = signAccessToken({
+    userId: row.id as string,
+    email: row.email as string,
+    role: row.role as string,
+  });
+  const refreshToken = signRefreshToken({ userId: row.id as string });
+
+  await pool.query("UPDATE users SET refresh_token_hash = $1 WHERE id = $2", [
+    hashToken(refreshToken),
+    row.id,
+  ]);
+
+  return { user: mapUser(row), accessToken, refreshToken };
+}
+
+export async function googleLoginUser(idToken: string): Promise<{
+  user: AuthUser;
+  accessToken: string;
+  refreshToken: string;
+}> {
+  // ── Step 1: Verify the ID token with Google ──────────────────────────────────
+  // verifyIdToken checks signature, expiry, and audience (your client ID).
+  // Never skip this — a raw JWT decode without verification is unsafe.
+  let ticket;
+  try {
+    ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+  } catch {
+    throw createError("Invalid Google token", 401, "INVALID_GOOGLE_TOKEN");
+  }
+
+  const payload = ticket.getPayload();
+  if (!payload?.sub || !payload.email) {
+    throw createError(
+      "Google token payload is missing required fields",
+      401,
+      "INVALID_GOOGLE_TOKEN",
+    );
+  }
+
+  const googleId = payload.sub;
+  const email = payload.email.toLowerCase().trim();
+  const firstName = payload.given_name ?? payload.name?.split(" ")[0] ?? "User";
+  const lastName =
+    payload.family_name ?? payload.name?.split(" ").slice(1).join(" ") ?? "";
+
+  // ── Step 2: Find existing user ───────────────────────────────────────────────
+  // Check by google_id first (fastest, most accurate on repeat logins).
+  // Fall back to email in case the user previously registered with a password
+  // using the same email address.
+  const { rows } = await pool.query(
+    `SELECT * FROM users
+     WHERE google_id = $1 OR email = $2
+     LIMIT 1`,
+    [googleId, email],
+  );
+
+  let row: Record<string, unknown>;
+
+  if (rows.length > 0) {
+    row = rows[0] as Record<string, unknown>;
+
+    if (!row.is_active) {
+      throw createError(
+        "Your account has been disabled",
+        403,
+        "ACCOUNT_DISABLED",
+      );
+    }
+
+    // If this user registered with email+password and is now signing in with
+    // Google for the first time, link the Google account to their existing record.
+    if (!row.google_id) {
+      await pool.query(
+        `UPDATE users
+         SET google_id = $1, updated_at = NOW()
+         WHERE id = $2`,
+        [googleId, row.id],
+      );
+      row.google_id = googleId;
+    }
+  } else {
+    // ── Step 3: First-ever Google login — create the account ──────────────────
+    // email_verified is set to true because Google has already verified it.
+    // password_hash is NULL — these users authenticate only via Google.
+    // auth_provider = 'google' so the app knows never to expect a password.
+    const { rows: created } = await pool.query(
+      `INSERT INTO users
+         (email, google_id, first_name, last_name,
+          auth_provider, email_verified, password_hash)
+       VALUES ($1, $2, $3, $4, 'google', true, NULL)
+       RETURNING *`,
+      [email, googleId, firstName, lastName],
+    );
+    row = created[0] as Record<string, unknown>;
+  }
+
+  // ── Step 4: Issue tokens (identical to loginUser) ────────────────────────────
+  await pool.query("UPDATE users SET last_login_at = NOW() WHERE id = $1", [
+    row.id,
+  ]);
 
   const accessToken = signAccessToken({
     userId: row.id as string,
