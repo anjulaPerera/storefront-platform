@@ -27,7 +27,7 @@ export interface ProcessedResult {
 
 function pickModel(): "isnet_fp16" | "isnet" {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const conn = (navigator as any).connection;
     const slow =
       conn?.saveData === true ||

@@ -42,10 +42,8 @@ export default function RootLayout({
       className={`${syne.variable} ${manrope.variable}`}
       suppressHydrationWarning
     >
-
-      <body className="noise-overlay">
-
-          <AppProviders>{children}</AppProviders>
+      <body className="noise-overlay" suppressHydrationWarning>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
