@@ -8,3 +8,4 @@ Test enquiries
 Use image cards as slideshow
 Now, we can upload multiple images, yet only via bg-removal ai. Give option to upload without anyof them.
 later add redirect to login in user/page line 315
+IN USERS/PAGE.tsx, WHEN TRYING TO CHANGE ROLE OF A CUSTOMER INTO ADMIN, Dropdown looks funny.
