@@ -1,19 +1,6 @@
 "use client";
 
-// apps/frontend/src/components/auth/GoogleAuthButton.tsx
-//
-// How this works:
-//   - `GoogleLogin` from @react-oauth/google is the ONLY way to get an id_token
-//     (credential) via @react-oauth/google without a backend code exchange.
-//     `useGoogleLogin` with flow="implicit" gives an access_token — not an id_token.
-//   - We render GoogleLogin invisibly and store a ref to its inner button.
-//   - Our own styled button click → programmatically clicks the hidden Google button
-//     → Google's account picker popup opens → onSuccess fires with credential (id_token)
-//     → we POST it to our backend's POST /auth/google-login.
-//   - This gives us a fully custom-styled button with zero extra network round trips.
-
-import { useRef, useState } from "react";
-import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { ApiError } from "@/lib/api";
 
@@ -21,6 +8,14 @@ interface Props {
   /** Called after backend auth succeeds — caller handles redirect */
   onSuccess: () => void;
   label?: string;
+}
+
+// Ensure TypeScript knows window.google exists
+declare global {
+  interface Window {
+    google?: any;
+    __googleAuthInitialized?: boolean;
+  }
 }
 
 export function GoogleAuthButton({
@@ -31,19 +26,11 @@ export function GoogleAuthButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Ref to the hidden GoogleLogin wrapper div — we click inside it to trigger
-  // Google's native account picker popup when our custom button is pressed.
-  const hiddenGoogleRef = useRef<HTMLDivElement>(null);
+  // Use a ref to store our callback function so it always accesses the latest closure variables
+  const callbackRef = useRef<any>(null);
 
-  function handleOurButtonClick() {
-    // Find and click the button that Google's SDK renders inside its div.
-    // Google renders an <iframe> + a <div role="button"> we can programmatically click.
-    const googleBtn =
-      hiddenGoogleRef.current?.querySelector<HTMLElement>('[role="button"]');
-    googleBtn?.click();
-  }
-
-  async function handleCredential(response: CredentialResponse) {
+  // Define what happens when a credential is successfully returned
+  async function handleCredential(response: any) {
     if (!response.credential) {
       setError("No credential received from Google. Please try again.");
       return;
@@ -51,8 +38,6 @@ export function GoogleAuthButton({
     setLoading(true);
     setError("");
     try {
-      // credential is a signed Google ID token (JWT).
-      // Our backend verifies it with google-auth-library and issues our own JWT.
       await googleLogin(response.credential);
       onSuccess();
     } catch (err) {
@@ -66,14 +51,74 @@ export function GoogleAuthButton({
     }
   }
 
-  function handleGoogleError() {
-    setError("Google sign-in was cancelled or failed. Please try again.");
-    setLoading(false);
+  // Update our ref whenever dependencies change
+  useEffect(() => {
+    callbackRef.current = handleCredential;
+  });
+
+  useEffect(() => {
+    const initGoogleGSI = () => {
+      if (!window.google?.accounts?.id) return;
+
+      // ─── CRITICAL FIX ───
+      // Check a custom global flag to prevent double-initialization warnings
+      if (!window.__googleAuthInitialized) {
+        window.google.accounts.id.initialize({
+          // Use your environment variable client ID here
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          // Always invoke our ref so we get the most up to date closure scope
+          callback: (res: any) => callbackRef.current?.(res),
+          ux_mode: "popup",
+        });
+        window.__googleAuthInitialized = true;
+      }
+    };
+
+    if (window.google) {
+      initGoogleGSI();
+    } else {
+      // Fallback in case script hasn't loaded yet
+      const script = document.querySelector(
+        'script[src="https://accounts.google.com/gsi/client"]',
+      );
+      script?.addEventListener("load", initGoogleGSI);
+      return () => script?.removeEventListener("load", initGoogleGSI);
+    }
+  }, []);
+
+function handleOurButtonClick() {
+  if (!window.google?.accounts?.id) {
+    setError(
+      "Google authentication script is still loading. Please try again in a second.",
+    );
+    return;
   }
+
+  // Double-check if initialization was skipped or delayed
+  if (!window.__googleAuthInitialized) {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setError("Missing Google Client ID configuration.");
+      console.error(
+        "NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing from frontend environment.",
+      );
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: (res: any) => callbackRef.current?.(res),
+      ux_mode: "popup",
+    });
+    window.__googleAuthInitialized = true;
+  }
+
+  // Safely trigger the prompt once we guarantee initialization
+  window.google.accounts.id.prompt();
+}
 
   return (
     <div className="space-y-2">
-      {/* ── Our custom styled button ─────────────────────────────────────────── */}
       <button
         type="button"
         disabled={loading}
@@ -91,21 +136,6 @@ export function GoogleAuthButton({
         {loading ? <Spinner /> : <GoogleIcon />}
         {loading ? "Signing in…" : label}
       </button>
-
-      {/* ── Hidden GoogleLogin — provides the real popup + id_token ─────────── */}
-      {/* Invisible but present in DOM so the SDK can render and be clicked.    */}
-      <div
-        ref={hiddenGoogleRef}
-        className="absolute opacity-0 pointer-events-none overflow-hidden h-0"
-        aria-hidden="true"
-      >
-        <GoogleLogin
-          onSuccess={handleCredential}
-          onError={handleGoogleError}
-          useOneTap={false}
-          auto_select={false}
-        />
-      </div>
 
       {/* ── Error message ────────────────────────────────────────────────────── */}
       {error && (
@@ -130,8 +160,7 @@ export function GoogleAuthButton({
   );
 }
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
+// ─── Icons unchanged (Spinner & GoogleIcon) ───────────────────────────────────
 function Spinner() {
   return (
     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -151,7 +180,6 @@ function Spinner() {
     </svg>
   );
 }
-
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
